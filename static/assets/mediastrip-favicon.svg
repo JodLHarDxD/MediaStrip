@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="ms-bg" x1="0.16" y1="0.08" x2="0.82" y2="0.94">
+      <stop offset="0%" stop-color="#1a0d2e"/>
+      <stop offset="100%" stop-color="#07040f"/>
+    </linearGradient>
+    <radialGradient id="ms-glow" cx="50%" cy="58%" r="52%">
+      <stop offset="0%" stop-color="#c4a0ff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#7b3fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ms-core" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#fffce8"/>
+      <stop offset="38%" stop-color="#ffd49b"/>
+      <stop offset="100%" stop-color="#ffb15a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Dark rounded square background -->
+  <rect x="4" y="4" width="88" height="88" rx="18" fill="url(#ms-bg)"/>
+
+  <!-- Ambient purple glow (no filter — solid radial gradient) -->
+  <circle cx="48" cy="56" r="30" fill="url(#ms-glow)"/>
+
+  <!-- Outer stem petals -->
+  <ellipse cx="29.5" cy="49" rx="4.2" ry="13.5" transform="rotate(-4 29.5 49)"  fill="#caa8ff" opacity="0.88"/>
+  <ellipse cx="66.5" cy="49" rx="4.2" ry="13.5" transform="rotate(4 66.5 49)"   fill="#caa8ff" opacity="0.88"/>
+
+  <!-- Diagonal petals -->
+  <ellipse cx="39.8" cy="53.2" rx="3.8" ry="9.8" transform="rotate(18 39.8 53.2)"  fill="#d8baff" opacity="0.80"/>
+  <ellipse cx="56.2" cy="53.2" rx="3.8" ry="9.8" transform="rotate(-18 56.2 53.2)" fill="#d8baff" opacity="0.80"/>
+
+  <!-- Top bridge petal -->
+  <ellipse cx="48" cy="38" rx="8.5" ry="5.0" fill="#ecdeff" opacity="0.85"/>
+
+  <!-- Core glow rings -->
+  <circle cx="48" cy="56" r="7.5" fill="#b088ff" opacity="0.60"/>
+  <circle cx="48" cy="56" r="4.2" fill="url(#ms-core)"/>
+  <!-- Hot pixel -->
+  <circle cx="48" cy="56" r="1.6" fill="#fff9e8"/>
+</svg>

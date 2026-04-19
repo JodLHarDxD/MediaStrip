@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+downloads/
+output/
+uploads/
+.git/
+RUN.text
+CLAUDE.md
+Dockerfile
+.dockerignore

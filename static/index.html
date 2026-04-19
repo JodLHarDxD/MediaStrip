@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediaStrip — Move media. Remove friction.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/clash-display" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+<link rel="shortcut icon" href="/favicon.ico" type="image/svg+xml">
+<style>
+body.is-preloading { overflow: hidden; background: #05030b; }
+body.is-preloading .site-shell {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.02);
+}
+body.app-ready .site-shell {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 900ms cubic-bezier(0.4, 0, 0.2, 1), transform 900ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+#site-loader {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(50, 27, 96, 0.9), rgba(5, 3, 11, 0.98) 62%),
+    linear-gradient(180deg, #090512, #020103);
+  z-index: 10050;
+}
+#site-loader[hidden] { display: none; }
+#site-loader.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 900ms cubic-bezier(0.4, 0, 0.2, 1), visibility 900ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+</style>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="is-preloading">
+
+<div class="site-loader" id="site-loader" aria-live="polite" aria-label="Loading MediaStrip">
+  <div class="site-loader__backdrop" aria-hidden="true"></div>
+  <div class="site-loader__noise" aria-hidden="true"></div>
+  <div class="site-loader__particles" aria-hidden="true">
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+    <span class="site-loader__particle"></span>
+  </div>
+
+  <div class="site-loader__center">
+    <div class="site-loader__mark" aria-hidden="true">
+      <svg class="site-loader__svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="presentation">
+        <defs>
+          <radialGradient id="loader-halo" cx="50%" cy="58%" r="55%">
+            <stop offset="0%" stop-color="#d4b8ff" stop-opacity="0.72"/>
+            <stop offset="55%" stop-color="#7a5cc7" stop-opacity="0.26"/>
+            <stop offset="100%" stop-color="#1a0d2e" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="loader-core" cx="50%" cy="55%" r="35%">
+            <stop offset="0%" stop-color="#fff8e7" stop-opacity="1"/>
+            <stop offset="35%" stop-color="#ffd4a8" stop-opacity="0.95"/>
+            <stop offset="70%" stop-color="#c084fc" stop-opacity="0.38"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="loader-petal" cx="50%" cy="45%" r="60%">
+            <stop offset="0%" stop-color="#fff1ff" stop-opacity="0.98"/>
+            <stop offset="55%" stop-color="#c7a3f0" stop-opacity="0.68"/>
+            <stop offset="100%" stop-color="#3d2b5f" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="loader-petal-top" cx="50%" cy="40%" r="65%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+            <stop offset="50%" stop-color="#e9d5ff" stop-opacity="0.84"/>
+            <stop offset="100%" stop-color="#7a5cc7" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="loader-soft" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="0.7"/>
+          </filter>
+        </defs>
+
+        <circle class="site-loader__halo" cx="100" cy="112" r="95" fill="url(#loader-halo)"/>
+
+        <g filter="url(#loader-soft)">
+          <g class="site-loader__petal-wrap site-loader__petal-wrap--a">
+            <ellipse cx="50" cy="110" rx="18" ry="64" transform="rotate(-6 50 110)" fill="url(#loader-petal)"/>
+          </g>
+          <g class="site-loader__petal-wrap site-loader__petal-wrap--a">
+            <ellipse cx="150" cy="110" rx="18" ry="64" transform="rotate(6 150 110)" fill="url(#loader-petal)"/>
+          </g>
+          <g class="site-loader__petal-wrap site-loader__petal-wrap--b">
+            <ellipse cx="80" cy="120" rx="14" ry="50" transform="rotate(22 80 120)" fill="url(#loader-petal)" opacity="0.92"/>
+          </g>
+          <g class="site-loader__petal-wrap site-loader__petal-wrap--b">
+            <ellipse cx="120" cy="120" rx="14" ry="50" transform="rotate(-22 120 120)" fill="url(#loader-petal)" opacity="0.92"/>
+          </g>
+          <g class="site-loader__petal-wrap site-loader__petal-wrap--c">
+            <ellipse cx="100" cy="70" rx="26" ry="20" fill="url(#loader-petal-top)"/>
+          </g>
+        </g>
+
+        <g class="site-loader__spark">
+          <line x1="100" y1="112" x2="100" y2="83"/>
+          <line x1="100" y1="112" x2="124" y2="98"/>
+          <line x1="100" y1="112" x2="124" y2="126"/>
+          <line x1="100" y1="112" x2="100" y2="141"/>
+          <line x1="100" y1="112" x2="76" y2="126"/>
+          <line x1="100" y1="112" x2="76" y2="98"/>
+        </g>
+
+        <circle class="site-loader__core-shell" cx="100" cy="112" r="42" fill="url(#loader-core)"/>
+        <circle class="site-loader__core-dot" cx="100" cy="112" r="3.5" fill="#fffdf2"/>
+      </svg>
+    </div>
+
+    <div class="site-loader__wordmark">Media<span>Strip</span></div>
+    <div class="site-loader__tag">download · clean · keep</div>
+  </div>
+
+  <div class="site-loader__meta">mediastrip · bloom-in v1</div>
+  <div class="site-loader__dots" aria-hidden="true">· · ·</div>
+</div>
+
+<noscript>
+  <style>
+  body { overflow: auto !important; }
+  .site-loader { display: none !important; }
+  .site-shell { opacity: 1 !important; visibility: visible !important; transform: none !important; }
+  </style>
+</noscript>
+
+<div class="site-shell">
+
+<div class="mesh-bg"></div>
+
+<!-- ═══════════════════════════════════════════ TOP NAV -->
+<nav class="top-nav" id="top-nav">
+  <div class="top-nav-inner">
+    <a class="top-nav-brand" href="#hero" onclick="scrollToSection('hero', event)">
+      Media<span>Strip</span>
+    </a>
+    <ul class="top-nav-links">
+      <li><a href="#tool-download" onclick="scrollToSection('tool-download', event)">Download</a></li>
+      <li><a href="#tool-watermark" onclick="scrollToSection('tool-watermark', event)">Watermark</a></li>
+      <li><a href="#result-catalog" onclick="scrollToSection('result-catalog', event)">Results</a></li>
+      <li><a href="#features" onclick="scrollToSection('features', event)">Features</a></li>
+      <li><a href="#manifesto" onclick="scrollToSection('manifesto', event)">About</a></li>
+    </ul>
+    <div class="top-nav-socials">
+      <a href="https://github.com" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.02c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.8 1.18 1.82 1.18 3.08 0 4.43-2.69 5.4-5.25 5.69.41.36.77 1.06.77 2.14v3.17c0 .31.21.67.8.55A10.53 10.53 0 0 0 23.5 12.02C23.5 5.74 18.27.5 12 .5z"/></svg>
+      </a>
+      <a href="https://linkedin.com" target="_blank" rel="noopener" title="LinkedIn" aria-label="LinkedIn">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.44-2.13 2.94v5.67H9.36V9.01h3.41v1.56h.05c.48-.9 1.65-1.85 3.39-1.85 3.62 0 4.29 2.38 4.29 5.48v6.25zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9.01h3.56v11.44z"/></svg>
+      </a>
+      <a href="https://instagram.com" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+      </a>
+      <a href="mailto:hello@mediastrip.app" title="Email" aria-label="Email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════ HERO -->
+<section id="hero">
+  <video id="hero-video" autoplay muted loop playsinline preload="auto">
+    <source src="/static/assets/atlas.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+
+  <!-- Cinematic coordinate frame -->
+  <div class="hero-frame-markers">
+    <div class="hero-marker top-left">
+      <span class="marker-dot"></span>
+      <span>47.3128°N · 13.5551°E</span>
+    </div>
+    <div class="hero-marker top-right">
+      <span>FRAME 0042 / 0434</span>
+      <span class="marker-dot"></span>
+    </div>
+    <div class="hero-marker bottom-left">
+      <span class="marker-dot"></span>
+      <span>SRC · ATLAS.MP4</span>
+    </div>
+    <div class="hero-marker bottom-right">
+      <span>LIVE</span>
+      <span class="marker-dot rec"></span>
+    </div>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-dot"></span>
+      GPU-ACCELERATED · LOCAL-FIRST
+    </div>
+    <h1 class="hero-title">MediaStrip</h1>
+    <p class="hero-tagline">Download · Clean · Keep</p>
+    <div class="hero-actions">
+      <button class="btn-hero btn-hero-primary" onclick="scrollToSection('tool-download')">
+        Start Downloading
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </button>
+      <button class="btn-hero btn-hero-secondary" onclick="scrollToSection('tool-watermark')">Remove Watermark</button>
+    </div>
+  </div>
+
+  <button id="sound-toggle" onclick="toggleSound()" title="Toggle sound" aria-label="Toggle sound">
+    <span class="sound-ring"></span>
+    <svg id="icon-muted" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+    </svg>
+    <svg id="icon-unmuted" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    </svg>
+  </button>
+
+  <button class="hero-scroll-hint" onclick="scrollToSection('manifesto')" aria-label="Scroll to content">
+    <span>SCROLL</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+</section>
+
+<!-- ═══════════════════════════════════════════ COORDINATES TICKER -->
+<div class="coords-strip" id="coords-strip">
+  <div class="coords-track" id="coords-track"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════ MANIFESTO -->
+<section class="section manifesto" id="manifesto">
+  <div class="manifesto-left reveal">
+    <div class="eyebrow">— ABOUT</div>
+    <h2 class="manifesto-title">
+      Move media.<br>
+      <span class="gradient-text">Remove friction.</span>
+    </h2>
+  </div>
+  <div class="manifesto-right reveal">
+    <p class="manifesto-body">
+      MediaStrip is a local-first content toolkit for creators, editors, and researchers who refuse to wait on cloud queues or compromise on quality.
+    </p>
+    <p class="manifesto-body">
+      Pull content from a thousand sources at native resolution — no re-encodes, no lossy passes. Strip watermarks frame-by-frame with a GPU-accelerated diffusion pipeline that actually understands what it's looking at.
+    </p>
+    <div class="manifesto-meta">
+      <div class="meta-item"><span class="meta-label">STACK</span><span class="meta-value">LaMa · OpenCV · FastAPI</span></div>
+      <div class="meta-item"><span class="meta-label">RUNTIME</span><span class="meta-value">CUDA · Python 3.13</span></div>
+      <div class="meta-item"><span class="meta-label">LICENSE</span><span class="meta-value">Private build</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ TOOL: DOWNLOAD -->
+<section class="section tool-section" id="tool-download">
+  <div class="tool-copy reveal">
+    <div class="eyebrow"><span class="eyebrow-num">01 /</span> DOWNLOAD</div>
+    <h2 class="tool-heading">Download<br>anything.</h2>
+    <p class="tool-body">
+      YouTube, TikTok, Instagram, Twitter — a thousand sources, one paste. Stream-copied at source resolution. No re-encoding, no quality loss, no cloud round-trip.
+    </p>
+    <div class="platform-pills">
+      <span class="pill">YouTube</span>
+      <span class="pill">TikTok</span>
+      <span class="pill">Instagram</span>
+      <span class="pill">Twitter</span>
+      <span class="pill">Facebook</span>
+      <span class="pill pill-muted">+1000 more</span>
+    </div>
+  </div>
+
+  <div class="tool-panel reveal">
+    <div class="glass-panel">
+      <div class="url-input-wrap">
+        <input
+          type="url" id="url-input" class="url-input"
+          placeholder="Paste URL here..."
+          autocomplete="off" spellcheck="false"
+        >
+        <button class="paste-btn" onclick="pasteUrl()">Paste</button>
+      </div>
+
+      <div class="config-row">
+        <svg class="config-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="config-row-label">Delivery</span>
+        <span class="config-row-value" id="output-folder-display">Browser catalog + direct download</span>
+        <button class="config-row-btn" onclick="scrollToCatalog()">View</button>
+      </div>
+
+      <div class="quality-row">
+        <span class="quality-label">Quality</span>
+        <span class="quality-badge"><span class="quality-dot"></span>4K / Best Available</span>
+      </div>
+
+      <button class="btn-primary" id="download-btn" onclick="startDownload()">
+        <span>Download</span>
+        <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+
+      <div class="progress-section" id="dl-progress">
+        <div class="progress-filename" id="dl-filename">Detecting...</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="dl-bar" style="width:0%"></div>
+        </div>
+        <div class="progress-stats">
+          <div>Speed: <span id="dl-speed">—</span></div>
+          <div>ETA: <span id="dl-eta">—</span></div>
+          <div>Progress: <span id="dl-pct">0%</span></div>
+        </div>
+        <div class="log-output" id="dl-log"></div>
+      </div>
+
+      <div class="success-state" id="dl-success">
+        <div class="success-icon">✓</div>
+        <div class="success-info">
+          <div class="success-title">Delivered to Catalog</div>
+          <div class="success-detail" id="dl-success-file"></div>
+        </div>
+        <button class="btn-open-folder" onclick="scrollToCatalog()">View Catalog</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ TOOL: WATERMARK -->
+<section class="section tool-section tool-section-flipped" id="tool-watermark">
+  <div class="tool-copy reveal">
+    <div class="eyebrow"><span class="eyebrow-num">02 /</span> WATERMARK</div>
+    <h2 class="tool-heading">Remove<br>watermarks.</h2>
+    <p class="tool-body">
+      Temporal variance detection finds the overlay. LaMa diffusion inpainting rebuilds what was underneath — pixel-perfect, frame-by-frame, on your GPU.
+    </p>
+    <div class="platform-pills">
+      <span class="pill">Video</span>
+      <span class="pill">Image</span>
+      <span class="pill">TikTok</span>
+      <span class="pill">Instagram</span>
+      <span class="pill">YouTube</span>
+    </div>
+  </div>
+
+  <div class="tool-panel reveal">
+    <div class="glass-panel">
+
+      <div
+        class="drop-zone" id="drop-zone"
+        onclick="document.getElementById('file-input').click()"
+        ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)"
+      >
+        <input
+          type="file" id="file-input" style="display:none"
+          accept=".mp4,.mov,.avi,.mkv,.webm,.jpg,.jpeg,.png,.webp,.tiff"
+          onchange="handleFileSelect(event)"
+        >
+
+        <div id="drop-idle">
+          <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="drop-zone-title">Drop your file here</div>
+          <div class="drop-zone-sub">or click to browse</div>
+          <div class="drop-zone-formats">VIDEO: mp4 &nbsp;mov &nbsp;avi &nbsp;mkv &nbsp;webm &nbsp;·&nbsp; IMAGE: jpg &nbsp;png &nbsp;webp &nbsp;tiff</div>
+        </div>
+
+        <div class="drop-preview" id="drop-preview">
+          <img class="drop-preview-thumb" id="preview-thumb" src="" alt="">
+          <div>
+            <div class="drop-preview-name" id="preview-name"></div>
+            <div class="drop-preview-meta" id="preview-meta"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="platform-grid">
+        <div class="platform-card selected" data-platform="tiktok" onclick="selectPlatform('tiktok')">
+          <span class="platform-icon">🎵</span>
+          <div class="platform-name">TikTok</div>
+          <div class="platform-tag">Regions pre-mapped</div>
+        </div>
+        <div class="platform-card" data-platform="instagram" onclick="selectPlatform('instagram')">
+          <span class="platform-icon">📷</span>
+          <div class="platform-name">Instagram</div>
+          <div class="platform-tag">Regions pre-mapped</div>
+        </div>
+        <div class="platform-card" data-platform="youtube" onclick="selectPlatform('youtube')">
+          <span class="platform-icon">▶️</span>
+          <div class="platform-name">YouTube</div>
+          <div class="platform-tag">Regions pre-mapped</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="wm-btn" onclick="startWatermarkRemoval()">
+        <span>Process File</span>
+        <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+
+      <div class="progress-section" id="wm-progress">
+        <div class="progress-filename" id="wm-filename">Processing...</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="wm-bar" style="width:0%"></div>
+        </div>
+        <div class="log-output" id="wm-log"></div>
+      </div>
+
+      <div class="success-state" id="wm-success">
+        <div class="success-icon">✓</div>
+        <div class="success-info">
+          <div class="success-title">Delivered to Catalog</div>
+          <div class="success-detail" id="wm-success-file"></div>
+        </div>
+        <button class="btn-open-folder" onclick="scrollToCatalog()">View Catalog</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ OUTPUT CATALOG -->
+<section class="section results-section" id="result-catalog">
+  <div class="section-header reveal">
+    <div class="eyebrow">— OUTPUT CATALOG</div>
+    <h2 class="section-heading">Ready to collect.<br>Delivered in browser.</h2>
+    <p class="results-body">
+      Finished media lands here first, then unfolds from a compact stack into a download-ready catalog that works the same way on phone and desktop.
+    </p>
+  </div>
+
+  <div class="results-shell reveal" id="results-shell">
+    <div class="results-shell-header">
+      <div class="results-status">
+        <span class="results-status-dot"></span>
+        Browser delivery active
+      </div>
+      <button class="results-clear" id="results-clear" onclick="clearCatalog()" hidden>Clear Catalog</button>
+    </div>
+
+    <div class="results-empty" id="results-empty">
+      <div class="results-empty-title">Nothing delivered yet.</div>
+      <p>
+        Run a download or watermark job and the finished files will appear here as an animated catalog with direct download buttons.
+      </p>
+    </div>
+
+    <div class="results-stream" id="results-stream"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ FEATURES -->
+<section class="section features-section" id="features">
+  <div class="section-header reveal">
+    <div class="eyebrow">— WHY MEDIASTRIP</div>
+    <h2 class="section-heading">Built for speed.<br>Designed for quality.</h2>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <div class="feature-index">01</div>
+      <h3 class="feature-title">GPU-Accelerated</h3>
+      <p class="feature-body">LaMa diffusion inpainting runs directly on your CUDA device. 1080p video processes in minutes, not hours — no queues, no throttles.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="feature-index">02</div>
+      <h3 class="feature-title">Local-First</h3>
+      <p class="feature-body">Files never leave your machine. No uploads, no cloud processing, no third-party analytics. Everything runs on localhost.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.39 7.36H22l-6.19 4.5 2.39 7.36L12 16.72l-6.19 4.5 2.39-7.36L2 9.36h7.61z"/></svg>
+      </div>
+      <div class="feature-index">03</div>
+      <h3 class="feature-title">4K Lossless</h3>
+      <p class="feature-body">Stream-copy downloads preserve the original bitstream. Watermark removal inpaints only the affected region — untouched pixels stay untouched.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ STATS BAND -->
+<section class="stats-band" id="stats">
+  <div class="stats-grid">
+    <div class="stat reveal">
+      <div class="stat-num" data-count="1000" data-suffix="+">0</div>
+      <div class="stat-label">Sources supported</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num" data-count="0" data-prefix="" data-suffix="">0</div>
+      <div class="stat-label">Files uploaded to the cloud</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num" data-count="4" data-suffix="K">0</div>
+      <div class="stat-label">Max resolution preserved</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num" data-count="100" data-suffix="%">0</div>
+      <div class="stat-label">Local compute</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ FOOTER -->
+<footer class="footer" id="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">Media<span>Strip</span></div>
+      <p class="footer-tagline">Move media. Remove friction.</p>
+      <div class="footer-gpu">
+        <span class="gpu-dot"></span>
+        GPU runtime online
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <div class="footer-col-title">Product</div>
+      <ul>
+        <li><a href="#tool-download" onclick="scrollToSection('tool-download', event)">Downloader</a></li>
+        <li><a href="#tool-watermark" onclick="scrollToSection('tool-watermark', event)">Watermark Remover</a></li>
+        <li><a href="#result-catalog" onclick="scrollToSection('result-catalog', event)">Output Catalog</a></li>
+        <li><a href="#features" onclick="scrollToSection('features', event)">Features</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <div class="footer-col-title">Resources</div>
+      <ul>
+        <li><a href="https://github.com" target="_blank" rel="noopener">Documentation</a></li>
+        <li><a href="https://github.com" target="_blank" rel="noopener">Source</a></li>
+        <li><a href="https://github.com" target="_blank" rel="noopener">Releases</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <div class="footer-col-title">Connect</div>
+      <div class="footer-socials">
+        <a href="https://github.com" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.02c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.8 1.18 1.82 1.18 3.08 0 4.43-2.69 5.4-5.25 5.69.41.36.77 1.06.77 2.14v3.17c0 .31.21.67.8.55A10.53 10.53 0 0 0 23.5 12.02C23.5 5.74 18.27.5 12 .5z"/></svg>
+        </a>
+        <a href="https://linkedin.com" target="_blank" rel="noopener" title="LinkedIn" aria-label="LinkedIn">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.44-2.13 2.94v5.67H9.36V9.01h3.41v1.56h.05c.48-.9 1.65-1.85 3.39-1.85 3.62 0 4.29 2.38 4.29 5.48v6.25zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9.01h3.56v11.44z"/></svg>
+        </a>
+        <a href="https://instagram.com" target="_blank" rel="noopener" title="Instagram" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <a href="https://x.com" target="_blank" rel="noopener" title="X / Twitter" aria-label="X">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="mailto:hello@mediastrip.app" title="Email" aria-label="Email">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </a>
+      </div>
+      <p class="footer-email">hello@mediastrip.app</p>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2026 MediaStrip — All rights reserved.</div>
+    <div class="footer-credit">Built with LaMa · OpenCV · FastAPI · ffmpeg</div>
+  </div>
+</footer>
+
+<div id="toast-container"></div>
+
+<!-- Mobile nav toggle -->
+<button class="mobile-nav-toggle" id="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Menu">
+  <span></span><span></span><span></span>
+</button>
+
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
