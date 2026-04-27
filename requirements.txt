@@ -6,6 +6,7 @@ Pillow>=10.3.0
 python-multipart>=0.0.9
 aiofiles>=23.2.1
 requests>=2.32.0
+slowapi>=0.1.9
 # torch + torchvision: install separately with CUDA wheel for GPU watermark removal
 # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 # pip install simple-lama-inpainting

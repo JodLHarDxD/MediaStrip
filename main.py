@@ -6,18 +6,70 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 mimetypes.add_type("image/svg+xml", ".svg")
 
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from downloader import download_video
 from watermark import remove_watermark
+
+# ── Rate limiter ──────────────────────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
+
+# ── Upload limits ─────────────────────────────────────────────────────────────
+MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
+
+# ── Allowed URL schemes for download ─────────────────────────────────────────
+ALLOWED_SCHEMES = {"http", "https"}
+BLOCKED_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+
+
+def _validate_download_url(url: str) -> None:
+    """Block SSRF: reject non-HTTP schemes and loopback/internal hosts."""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise HTTPException(400, "Invalid URL")
+    if parsed.scheme.lower() not in ALLOWED_SCHEMES:
+        raise HTTPException(400, "Only http/https URLs are allowed")
+    host = (parsed.hostname or "").lower()
+    if host in BLOCKED_HOSTS or host.startswith("169.254.") or host.startswith("10.") or host.startswith("192.168."):
+        raise HTTPException(400, "URL not allowed")
+
+
+def _safe_filename(raw: str) -> str:
+    """Return only the basename, stripping any path components."""
+    return Path(raw).name or "upload"
+
+
+# ── Security headers middleware ───────────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.cdnfonts.com https://fonts.gstatic.com; "
+            "media-src 'self' blob:; "
+            "img-src 'self' data: blob:; "
+            "connect-src 'self';"
+        )
+        return response
 
 CLEANUP_MAX_AGE_SECONDS = 24 * 60 * 60
 CLEANUP_INTERVAL_SECONDS = 60 * 60
@@ -56,13 +108,17 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(title="MediaStrip", lifespan=lifespan)
+app = FastAPI(title="MediaStrip", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 BASE_DIR = Path(__file__).parent
@@ -181,31 +237,42 @@ def _serialize_artifacts(paths: list[str | Path]) -> list[dict]:
 
 
 @app.post("/download")
-async def start_download(request: DownloadRequest, background_tasks: BackgroundTasks):
+@limiter.limit("10/minute")
+async def start_download(request: Request, body: DownloadRequest, background_tasks: BackgroundTasks):
+    _validate_download_url(body.url)
     job_id = str(uuid.uuid4())
     job_queues[job_id] = asyncio.Queue()
     output_folder = DOWNLOADS_DIR / job_id
     output_folder.mkdir(parents=True, exist_ok=True)
-    background_tasks.add_task(download_video, request.url, output_folder, job_queues[job_id])
+    background_tasks.add_task(download_video, body.url, output_folder, job_queues[job_id])
     return {"job_id": job_id}
 
 
 @app.post("/remove-watermark")
+@limiter.limit("5/minute")
 async def start_watermark_removal(
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     platform: str = Form("tiktok"),
 ):
+    # Enforce upload size limit
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"File too large — maximum is {MAX_UPLOAD_BYTES // (1024*1024)} MB")
+
     job_id = str(uuid.uuid4())
     job_queues[job_id] = asyncio.Queue()
 
-    upload_path = UPLOADS_DIR / f"{job_id}_{file.filename}"
-    content = await file.read()
+    safe_name = _safe_filename(file.filename or "upload")
+    upload_path = UPLOADS_DIR / f"{job_id}_{safe_name}"
     upload_path.write_bytes(content)
 
     output_dir = OUTPUT_DIR / job_id
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{Path(file.filename).stem}_clean{Path(file.filename).suffix}"
+    stem = Path(safe_name).stem
+    suffix = Path(safe_name).suffix
+    output_path = output_dir / f"{stem}_clean{suffix}"
     background_tasks.add_task(remove_watermark, upload_path, output_path, platform, job_queues[job_id])
     return {"job_id": job_id}
 
