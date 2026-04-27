@@ -146,6 +146,16 @@ async def favicon():
     return FileResponse(STATIC_DIR / "assets" / "mediastrip-favicon.svg", media_type="image/svg+xml")
 
 
+@app.get("/robots.txt", include_in_schema=False)
+async def robots():
+    return FileResponse(BASE_DIR / "robots.txt", media_type="text/plain")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap():
+    return FileResponse(BASE_DIR / "sitemap.xml", media_type="application/xml")
+
+
 @app.get("/")
 async def serve_index():
     return HTMLResponse((STATIC_DIR / "index.html").read_text(encoding="utf-8"))
