@@ -4,6 +4,18 @@
     <loc>https://mediastrip-jodl.up.railway.app/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-04-28</lastmod>
+  </url>
+  <url>
+    <loc>https://mediastrip-jodl.up.railway.app/blog/gpu-watermark-removal</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2026-04-28</lastmod>
+  </url>
+  <url>
+    <loc>https://mediastrip-jodl.up.railway.app/blog/diffusion-watermark-remover</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2026-04-28</lastmod>
   </url>
 </urlset>

@@ -1,0 +1,14 @@
+{
+  "seo_title": "GPU Watermark Removal: Faster, Cleaner, Local-First",
+  "meta_description": "GPU watermark removal runs CUDA-powered LaMa inpainting on your own GPU — faster turnaround than cloud tools, no upload, and zero generational quality loss.",
+  "slug": "gpu-watermark-removal",
+  "og_image_brief": "Split-screen comparison: a video frame with a corner watermark on the left, the same frame cleanly inpainted on the right, with a stylized GPU/CUDA core motif overlay and the MediaStrip wordmark.",
+  "primary_keyword": "GPU watermark removal",
+  "word_count": 1272,
+  "reading_time_min": 6,
+  "internal_links_used": [
+    {"anchor": "MediaStrip's watermark remover", "url": "https://mediastrip-jodl.up.railway.app/#tool-watermark"},
+    {"anchor": "MediaStrip homepage", "url": "https://mediastrip-jodl.up.railway.app/"},
+    {"anchor": "video downloader", "url": "https://mediastrip-jodl.up.railway.app/#tool-download"}
+  ]
+}

@@ -156,6 +156,106 @@ async def sitemap():
     return FileResponse(BASE_DIR / "sitemap.xml", media_type="application/xml")
 
 
+SITE_URL = "https://mediastrip-jodl.up.railway.app"
+BLOG_DIR = STATIC_DIR / "blog"
+
+
+def _render_blog_post(slug: str) -> str:
+    article_path = BLOG_DIR / f"{slug}.html"
+    meta_path = BLOG_DIR / f"{slug}.meta.json"
+    if not article_path.is_file() or not meta_path.is_file():
+        raise HTTPException(404, "Post not found")
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    article_html = article_path.read_text(encoding="utf-8")
+    canonical = f"{SITE_URL}/blog/{slug}"
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{meta['seo_title']}</title>
+<meta name="description" content="{meta['meta_description']}">
+<link rel="canonical" href="{canonical}">
+
+<meta property="og:title" content="{meta['seo_title']}">
+<meta property="og:description" content="{meta['meta_description']}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:type" content="article">
+<meta property="og:image" content="{SITE_URL}/static/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="MediaStrip">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{meta['seo_title']}">
+<meta name="twitter:description" content="{meta['meta_description']}">
+<meta name="twitter:image" content="{SITE_URL}/static/og-image.png">
+
+<script type="application/ld+json">
+{{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{meta['seo_title']}",
+  "description": "{meta['meta_description']}",
+  "url": "{canonical}",
+  "image": "{SITE_URL}/static/og-image.png",
+  "wordCount": {meta['word_count']},
+  "keywords": "{meta['primary_keyword']}",
+  "mainEntityOfPage": {{"@type": "WebPage", "@id": "{canonical}"}},
+  "publisher": {{"@type": "Organization", "name": "MediaStrip", "url": "{SITE_URL}/"}}
+}}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+<style>
+:root {{ --bg: #05030b; --ink: #e9e2f5; --muted: #8a7fa8; --accent: #d4b8ff; --rule: rgba(212,184,255,0.14); }}
+* {{ box-sizing: border-box; }}
+html, body {{ margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: "DM Sans", system-ui, sans-serif; line-height: 1.7; -webkit-font-smoothing: antialiased; }}
+.blog-nav {{ max-width: 760px; margin: 0 auto; padding: 32px 24px 0; display: flex; justify-content: space-between; align-items: center; }}
+.blog-nav a {{ color: var(--muted); text-decoration: none; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.2s; }}
+.blog-nav a:hover {{ color: var(--accent); }}
+.blog-nav .brand {{ color: var(--ink); font-weight: 500; font-size: 16px; text-transform: none; letter-spacing: 0; }}
+.blog-nav .brand span {{ color: var(--accent); }}
+.blog-post {{ max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }}
+.blog-post-header {{ border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }}
+.blog-post h1 {{ font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: clamp(32px, 5vw, 48px); line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.01em; }}
+.blog-post-meta {{ color: var(--muted); font-size: 14px; margin: 0; letter-spacing: 0.03em; }}
+.blog-post-body h2 {{ font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 26px; margin: 48px 0 16px; color: var(--ink); letter-spacing: -0.005em; }}
+.blog-post-body h3 {{ font-size: 19px; font-weight: 600; margin: 32px 0 12px; color: var(--ink); }}
+.blog-post-body p {{ margin: 0 0 20px; font-size: 17px; color: var(--ink); }}
+.blog-post-body ul, .blog-post-body ol {{ margin: 0 0 24px; padding-left: 24px; }}
+.blog-post-body li {{ margin-bottom: 8px; font-size: 17px; }}
+.blog-post-body a {{ color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(212,184,255,0.35); transition: border-color 0.2s; }}
+.blog-post-body a:hover {{ border-bottom-color: var(--accent); }}
+.blog-post-body code {{ background: rgba(212,184,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.92em; color: var(--accent); }}
+.blog-post-body strong {{ color: var(--ink); font-weight: 600; }}
+.blog-footer {{ max-width: 720px; margin: 0 auto; padding: 32px 24px 48px; border-top: 1px solid var(--rule); text-align: center; color: var(--muted); font-size: 14px; }}
+.blog-footer a {{ color: var(--accent); text-decoration: none; }}
+</style>
+</head>
+<body>
+<nav class="blog-nav">
+  <a href="/" class="brand">Media<span>Strip</span></a>
+  <a href="/">← Back to app</a>
+</nav>
+{article_html}
+<footer class="blog-footer">
+  <p>Try <a href="/">MediaStrip</a> — local-first GPU watermark removal and 4K media downloading.</p>
+</footer>
+</body>
+</html>"""
+
+
+@app.get("/blog/{slug}")
+async def serve_blog_post(slug: str):
+    if not slug.replace("-", "").isalnum():
+        raise HTTPException(404, "Post not found")
+    return HTMLResponse(_render_blog_post(slug))
+
+
 @app.get("/")
 async def serve_index():
     return HTMLResponse((STATIC_DIR / "index.html").read_text(encoding="utf-8"))
