@@ -1,0 +1,11 @@
+# anime_extractor dependencies
+# Add these to your existing requirements.txt
+
+httpx>=0.27.0          # async HTTP client (you likely already have this)
+beautifulsoup4>=4.12   # HTML parsing for embed page
+fastapi>=0.100.0       # already in MediaStrip
+uvicorn>=0.20.0        # already in MediaStrip
+
+# System deps (not pip):
+# - yt-dlp    → pip install yt-dlp OR apt install yt-dlp
+# - ffmpeg    → apt install ffmpeg (needed by yt-dlp for muxing)

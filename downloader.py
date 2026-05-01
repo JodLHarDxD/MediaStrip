@@ -8,13 +8,37 @@ from urllib.parse import urlparse
 
 import requests
 
+sys.path.insert(0, str(Path(__file__).parent / "anime modul"))
+try:
+    from anime_extractor import parse_anime_url as _anime_parse, resolve_stream as _anime_resolve
+    _ANIME_AVAILABLE = True
+except ImportError:
+    _ANIME_AVAILABLE = False
+
 INSTAGRAM_EMBED_HEADERS = {
     "User-Agent": "Mozilla/5.0",
     "Accept-Language": "en-US,en;q=0.9",
 }
 
 
+async def _download_anime(url: str, output_folder: Path, queue: asyncio.Queue):
+    """Resolve anime URL → m3u8, then delegate to the standard yt-dlp pipeline."""
+    try:
+        await queue.put({"type": "log", "value": "Anime URL detected — resolving stream via myani.cfd..."})
+        stream = await _anime_resolve(url)
+        await queue.put({"type": "log", "value": f"Resolved: {stream.anime_title} — {stream.title} (Ep {stream.episode_number})"})
+        await queue.put({"type": "filename", "value": f"{stream.anime_title}_ep{stream.episode_number:02d}.mp4"})
+        await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
+        await download_video(stream.m3u8_url, output_folder, queue)
+    except Exception as e:
+        await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
+
+
 async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
+    if _ANIME_AVAILABLE and _anime_parse(url):
+        await _download_anime(url, output_folder, queue)
+        return
+
     output_folder.mkdir(parents=True, exist_ok=True)
     output_template = str(output_folder / "%(title)s_%(id)s.%(ext)s")
 

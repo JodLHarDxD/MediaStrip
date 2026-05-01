@@ -23,6 +23,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from downloader import download_video
 from watermark import remove_watermark
 
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).parent / "anime modul"))
+try:
+    from anime_extractor import create_router as _create_anime_router
+    _ANIME_ROUTER: object = _create_anime_router()
+except ImportError:
+    _ANIME_ROUTER = None
+
 # ── Rate limiter ──────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
@@ -137,6 +145,9 @@ for d in [DOWNLOADS_DIR, OUTPUT_DIR, UPLOADS_DIR]:
     d.mkdir(exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+if _ANIME_ROUTER is not None:
+    app.include_router(_ANIME_ROUTER, prefix="/anime")
 
 job_queues: dict[str, asyncio.Queue] = {}
 
