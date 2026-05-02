@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /install /usr/local
-COPY main.py downloader.py watermark.py robots.txt sitemap.xml ./
+COPY main.py downloader.py watermark.py anime_extractor.py robots.txt sitemap.xml ./
 COPY static/ ./static/
 
 RUN mkdir -p downloads output uploads
