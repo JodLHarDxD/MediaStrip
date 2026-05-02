@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 
 import requests
 
-sys.path.insert(0, str(Path(__file__).parent / "anime_module"))
 _ANIME_IMPORT_ERROR: str | None = None
 try:
     from anime_extractor import parse_anime_url as _anime_parse, resolve_stream as _anime_resolve
