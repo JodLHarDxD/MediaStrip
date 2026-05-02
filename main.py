@@ -24,7 +24,7 @@ from downloader import download_video
 from watermark import remove_watermark
 
 import sys as _sys
-_sys.path.insert(0, str(Path(__file__).parent / "anime modul"))
+_sys.path.insert(0, str(Path(__file__).parent / "anime_module"))
 try:
     from anime_extractor import create_router as _create_anime_router
     _ANIME_ROUTER: object = _create_anime_router()
