@@ -58,8 +58,13 @@ async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
         "--progress",
         "--newline",
         "--output", output_template,
-        url,
     ]
+
+    # m3u8 streams (e.g. anime CDNs) are behind Cloudflare — requires browser impersonation
+    if parsed_url.path.endswith(".m3u8"):
+        cmd.extend(["--extractor-args", "generic:impersonate"])
+
+    cmd.append(url)
 
     try:
         process = await asyncio.create_subprocess_exec(
