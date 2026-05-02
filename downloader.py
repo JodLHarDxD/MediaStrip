@@ -41,6 +41,12 @@ _ANIME_URL_PATTERN = re.compile(
 
 
 async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
+    # Support "URL|referer=https://site.com" syntax for CDNs that check Referer
+    referer: str | None = None
+    if "|referer=" in url:
+        url, referer = url.split("|referer=", 1)
+        referer = referer.strip()
+
     if _ANIME_AVAILABLE and _anime_parse(url):
         await _download_anime(url, output_folder, queue)
         return
@@ -73,6 +79,9 @@ async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
     # m3u8 streams (e.g. anime CDNs) are behind Cloudflare — requires browser impersonation
     if parsed_url.path.endswith(".m3u8"):
         cmd.extend(["--extractor-args", "generic:impersonate"])
+
+    if referer:
+        cmd.extend(["--add-header", f"Referer:{referer}"])
 
     cmd.append(url)
 
