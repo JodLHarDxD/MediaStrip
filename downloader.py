@@ -9,11 +9,13 @@ from urllib.parse import urlparse
 import requests
 
 sys.path.insert(0, str(Path(__file__).parent / "anime modul"))
+_ANIME_IMPORT_ERROR: str | None = None
 try:
     from anime_extractor import parse_anime_url as _anime_parse, resolve_stream as _anime_resolve
     _ANIME_AVAILABLE = True
-except ImportError:
+except Exception as _e:
     _ANIME_AVAILABLE = False
+    _ANIME_IMPORT_ERROR = f"{type(_e).__name__}: {_e}"
 
 INSTAGRAM_EMBED_HEADERS = {
     "User-Agent": "Mozilla/5.0",
@@ -34,9 +36,18 @@ async def _download_anime(url: str, output_folder: Path, queue: asyncio.Queue):
         await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
 
 
+_ANIME_URL_PATTERN = re.compile(
+    r"https?://(?:hianime[s]?\.(?:se|to|sx|tv|me|watch)|aniwatch\.to|kaido\.to)/watch/"
+)
+
+
 async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
     if _ANIME_AVAILABLE and _anime_parse(url):
         await _download_anime(url, output_folder, queue)
+        return
+    if not _ANIME_AVAILABLE and _ANIME_URL_PATTERN.search(url):
+        err = _ANIME_IMPORT_ERROR or "anime module not loaded"
+        await queue.put({"type": "error", "message": f"Anime module failed to load: {err}"})
         return
 
     output_folder.mkdir(parents=True, exist_ok=True)
