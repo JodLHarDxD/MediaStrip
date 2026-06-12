@@ -10,6 +10,23 @@ const MANIFEST_URL_RE = /\.(m3u8|mpd)([?#]|$)/i;
 const MEDIA_URL_RE = /\.(mp4|webm|mkv|mov|m4v|mp3|m4a|aac|flac|ogg|opus|wav|gif)([?#]|$)/i;
 // HLS/DASH fragments — noise, the manifest is what we want
 const FRAGMENT_URL_RE = /\.(ts|m4s)([?#]|$)|\/(seg|frag|chunk)[-_]?\d+/i;
+// Byte-range chunk requests (YouTube videoplayback&range=..., MSE players) —
+// each one is a partial slice, useless as a download target
+const RANGE_PARAM_RE = /[?&]range=\d+-\d+/i;
+
+// Content scripts only auto-inject on navigation. After install/update/reload,
+// already-open tabs would have a dead (or no) catcher — inject a fresh one.
+chrome.runtime.onInstalled.addListener(async () => {
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+  for (const tab of tabs) {
+    try {
+      await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+    } catch (_) {
+      /* unscriptable tab (store, chrome://, discarded) — skip */
+    }
+  }
+});
 
 // In-memory cache; chrome.storage.session is the source of truth across SW restarts.
 const tabMedia = new Map();
@@ -50,7 +67,7 @@ chrome.webRequest.onResponseStarted.addListener(
   async (details) => {
     if (details.tabId < 0) return;
     const contentType = header(details.responseHeaders, "content-type");
-    if (FRAGMENT_URL_RE.test(details.url)) return;
+    if (FRAGMENT_URL_RE.test(details.url) || RANGE_PARAM_RE.test(details.url)) return;
 
     const kind = classify(details.url, contentType);
     if (!kind) return;

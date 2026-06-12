@@ -9,12 +9,40 @@
 
 (() => {
   if (window.top !== window.self) return; // sub-frames: sniffer handles them
+  if (window.__mediastripInjected) return; // already injected (manifest + programmatic)
+  window.__mediastripInjected = true;
 
   const items = new Map(); // url -> {url, kind, label, page_url, size, source}
   let panel = null;
   let launcher = null;
   let panelOpen = false;
   let pollTimer = null;
+  let mainTimer = null;
+  let observer = null;
+  let destroyed = false;
+
+  // Extension reloads orphan this script: chrome.runtime dies but timers keep
+  // firing. Detect that, go silent, and remove our UI — the background worker
+  // re-injects a fresh copy of this script into the tab.
+  function alive() {
+    try {
+      return !destroyed && !!(chrome.runtime && chrome.runtime.id);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function destroy() {
+    if (destroyed) return;
+    destroyed = true;
+    clearInterval(pollTimer);
+    clearInterval(mainTimer);
+    if (observer) observer.disconnect();
+    document.removeEventListener("play", debouncedRefresh, true);
+    launcher?.remove();
+    panel?.remove();
+    window.__mediastripInjected = false;
+  }
 
   const pageUrl = () => location.href;
 
@@ -86,19 +114,25 @@
 
   // ── merge sniffed streams from background ────────────────────────────────────
   function pullSniffed() {
-    chrome.runtime.sendMessage({ type: "get-media" }, (res) => {
-      if (chrome.runtime.lastError || !res) return;
-      let changed = false;
-      for (const it of res.items || []) {
-        const kind = it.kind === "manifest" ? "manifest" : it.kind === "image" ? "direct" : "direct";
-        changed = addItem(it.url, kind, fileLabel(it.url, it.kind), "network", it.size || 0) || changed;
-      }
-      if (changed) render();
-      updateLauncher();
-    });
+    if (!alive()) return destroy();
+    try {
+      chrome.runtime.sendMessage({ type: "get-media" }, (res) => {
+        if (chrome.runtime.lastError || !res) return;
+        let changed = false;
+        for (const it of res.items || []) {
+          const kind = it.kind === "manifest" ? "manifest" : it.kind === "image" ? "direct" : "direct";
+          changed = addItem(it.url, kind, fileLabel(it.url, it.kind), "network", it.size || 0) || changed;
+        }
+        if (changed) render();
+        updateLauncher();
+      });
+    } catch (_) {
+      destroy(); // sendMessage throws synchronously once the context is gone
+    }
   }
 
   function refresh() {
+    if (!alive()) return destroy();
     const domChanged = scanDom();
     if (domChanged) render();
     updateLauncher();
@@ -107,21 +141,35 @@
 
   // ── download ─────────────────────────────────────────────────────────────────
   function download(item, btn) {
+    if (!alive()) {
+      toast("MediaStrip was updated — refresh this page", false);
+      return destroy();
+    }
     if (btn) btn.classList.add("__ms_busy");
     const payload = {
       url: item.kind === "page" ? item.page_url : item.url,
       kind: item.kind,
       page_url: item.page_url,
     };
-    chrome.runtime.sendMessage({ type: "download", payload }, (res) => {
+    try {
+      chrome.runtime.sendMessage({ type: "download", payload }, (res) => {
+        if (btn) btn.classList.remove("__ms_busy");
+        if (chrome.runtime.lastError) {
+          toast("MediaStrip extension error — try reloading the page", false);
+          return;
+        }
+        if (res && res.ok) {
+          toast("Sent to MediaStrip ✓ (" + res.kind + ")", true);
+          if (btn) { btn.textContent = "✓"; setTimeout(() => (btn.textContent = "⬇"), 1500); }
+        } else {
+          toast(res?.error || "MediaStrip server not reachable", false);
+        }
+      });
+    } catch (_) {
       if (btn) btn.classList.remove("__ms_busy");
-      if (res && res.ok) {
-        toast("Sent to MediaStrip ✓ (" + res.kind + ")", true);
-        if (btn) { btn.textContent = "✓"; setTimeout(() => (btn.textContent = "⬇"), 1500); }
-      } else {
-        toast(res?.error || "MediaStrip server not reachable", false);
-      }
-    });
+      toast("MediaStrip was updated — refresh this page", false);
+      destroy();
+    }
   }
 
   // ── UI: launcher + panel ─────────────────────────────────────────────────────
@@ -232,11 +280,11 @@
 
   function start() {
     refresh();
-    const mo = new MutationObserver(debouncedRefresh);
-    mo.observe(document.documentElement, { childList: true, subtree: true });
+    observer = new MutationObserver(debouncedRefresh);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
     // catch lazily-attached players / src swaps
     document.addEventListener("play", debouncedRefresh, true);
-    setInterval(refresh, 5000);
+    mainTimer = setInterval(refresh, 5000);
   }
 
   if (document.readyState === "loading") {

@@ -42,8 +42,8 @@ and single-page-app navigation are picked up automatically.
 
 ## Settings
 
-Popup → server URL field. Default `http://localhost:8000`.
-Point it at a remote MediaStrip instance if you run one.
+Popup → server URL field. Default `https://mediastrip.jodlx.in` (the live site).
+Point it at `http://localhost:8000` to download straight to your own machine.
 
 ## Login-gated streams (cookies)
 
@@ -53,7 +53,7 @@ them with the download request, so the server fetches the stream exactly as your
 browser would. Cookies are scoped to the target domain — no blanket cookie dump.
 
 > **Privacy:** cookies are sent to whatever server URL is set in the popup
-> (default `http://localhost:8000`, your own machine). Only point the extension at
+> (default `https://mediastrip.jodlx.in`). Only point the extension at
 > a remote server you trust — that server receives session cookies for gated downloads.
 
 ## What it can and cannot download
@@ -72,3 +72,16 @@ browser would. Cookies are scoped to the target domain — no blanket cookie dum
 - `cookies` — read cookies for a media domain to download login-gated streams
 - `storage` — remember server URL; per-tab catch lists live in session storage
 - `tabs` — read active tab URL for page-level extraction
+- `scripting` — re-inject the catcher into already-open tabs after the extension
+  is installed, updated, or reloaded (otherwise those tabs need a manual refresh)
+
+## Troubleshooting
+
+**"Extension context invalidated" in the console / dead ⬇ buttons** — fixed in
+v1.3.0. This happened when the extension was reloaded while pages were open: the
+old in-page script kept running against a dead extension. Now the old script
+silently removes itself and a fresh catcher is auto-injected into every open tab.
+
+**Dev loop:** `python test_extension.py` (needs `pip install playwright` +
+`playwright install chromium`) loads the extension in a scratch Chromium profile
+and verifies sniffing, the panel, double-injection guarding, and silent teardown.
