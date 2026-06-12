@@ -17,6 +17,7 @@ import logging
 from enum import Enum
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 from dataclasses import dataclass, field
 
 import httpx
@@ -105,6 +106,7 @@ class StreamInfo:
     qualities: list = field(default_factory=list)
     intro: Optional[dict] = None
     outro: Optional[dict] = None
+    referer: Optional[str] = None  # CDN Referer required for the m3u8 download
 
 
 @dataclass 
@@ -143,6 +145,79 @@ def parse_anime_url(url: str) -> Optional[str]:
 
 
 # ─── Resolution Chain ───────────────────────────────────────────────────────────
+
+MEGAPLAY_EMBED_RE = re.compile(r"https://megaplay\.buzz/stream/[^\"'\\\s]+")
+
+
+def _title_from_slug(slug: str) -> str:
+    """Fallback anime title: turn a slug into Title Case, dropping the episode tail."""
+    cleaned = re.sub(r"-episode-\d+.*$", "", slug)
+    cleaned = re.sub(r"-[a-z0-9]{5,8}$", "", cleaned)  # trailing hash id
+    return cleaned.replace("-", " ").strip().title() or slug
+
+
+async def resolve_watch_page(url: str, audio_lang: str = "sub") -> dict:
+    """Direct resolver — no myani.cfd.
+
+    The hianime watch page server-renders the episode data, including the
+    megaplay embed URL, straight into the HTML. Scrape it instead of relying
+    on the (frequently down) myani.cfd API.
+
+    Returns {embed_url, anime_title, episode_number, title}.
+    """
+    parsed = urlparse(url)
+    site_root = f"{parsed.scheme}://{parsed.netloc}/"
+
+    try:
+        resp = await _fetch(url, headers={"Referer": site_root}, timeout=20)
+    except Exception as e:
+        raise ValueError(
+            f"Anime site ({parsed.netloc}) is unreachable — it may be down. Try again later."
+        ) from e
+
+    _guard_upstream(resp, parsed.netloc)
+    html = resp.text
+
+    # Megaplay embed for the requested language. The active <iframe> is the sub
+    # player; dub (when present) lives in the escaped episode JSON.
+    embed_url = None
+    if audio_lang == "dub":
+        dub = re.search(r'\\"dub\\":\[\\"(https://megaplay\.buzz/stream/[^"\\]+)\\"', html)
+        if dub:
+            embed_url = dub.group(1)
+    if not embed_url:
+        iframe = re.search(r'<iframe[^>]+src="(https://megaplay\.buzz/stream/[^"]+)"', html)
+        if iframe:
+            embed_url = iframe.group(1)
+    if not embed_url:
+        any_embed = MEGAPLAY_EMBED_RE.search(html)
+        embed_url = any_embed.group(0) if any_embed else None
+    if not embed_url:
+        raise ValueError(
+            "No megaplay player found on the watch page — the anime site structure "
+            "may have changed."
+        )
+
+    slug = parse_anime_url(url) or ""
+    title_match = (
+        re.search(r'\\"title\\":\\"([^"\\]+)\\",\\"totalEpisodes\\"', html)
+        or re.search(r'"title":"([^"]+)","totalEpisodes"', html)
+    )
+    anime_title = title_match.group(1).strip() if title_match else _title_from_slug(slug)
+
+    ep_match = re.search(r"episode-(\d+)", url) or re.search(r"[?&]ep=(\d+)", url)
+    episode_number = int(ep_match.group(1)) if ep_match else 0
+
+    title = f"{anime_title} Episode {episode_number}" if episode_number else anime_title
+
+    logger.info(f"Direct resolve: {anime_title} ep{episode_number} → {embed_url}")
+    return {
+        "embed_url": embed_url,
+        "anime_title": anime_title,
+        "episode_number": episode_number,
+        "title": title,
+    }
+
 
 async def resolve_episode(slug: str) -> dict:
     """
@@ -222,34 +297,47 @@ async def resolve_stream(url: str, audio_lang: str = "sub") -> StreamInfo:
     slug = parse_anime_url(url)
     if not slug:
         raise ValueError(f"Could not parse anime URL: {url}")
-    
+
     logger.info(f"Resolving slug: {slug}")
-    
-    # Step 1: Get episode data
-    episode_data = await resolve_episode(slug)
-    episode = episode_data["episode"]
-    anime = episode_data.get("anime", {})
-    
-    # Pick sub or dub embed URL
-    links = episode.get("link", {})
-    lang_links = links.get(audio_lang, links.get("sub", []))
-    
-    if not lang_links:
-        raise ValueError(f"No {audio_lang} links found for episode")
-    
-    embed_url = lang_links[0]
+
+    # Step 1: Get the megaplay embed URL + metadata.
+    # Primary: scrape the watch page directly (no myani.cfd dependency).
+    # Fallback: legacy myani.cfd API, in case the page structure changes.
+    meta: dict
+    try:
+        meta = await resolve_watch_page(url, audio_lang)
+        embed_url = meta["embed_url"]
+        anime_title = meta["anime_title"]
+        episode_number = meta["episode_number"]
+        title = meta["title"]
+    except Exception as direct_err:
+        logger.warning(f"Direct resolve failed ({direct_err}); falling back to myani.cfd")
+        episode_data = await resolve_episode(slug)
+        episode = episode_data["episode"]
+        anime = episode_data.get("anime", {})
+        links = episode.get("link", {})
+        lang_links = links.get(audio_lang, links.get("sub", []))
+        if not lang_links:
+            raise ValueError(f"No {audio_lang} links found for episode")
+        embed_url = lang_links[0]
+        anime_title = anime.get("Japanese", anime.get("_id", "Unknown"))
+        episode_number = episode.get("episodeNumber", 0)
+        title = episode.get("title", slug)
+
     logger.info(f"Embed URL: {embed_url}")
-    
-    # Step 2: Get player ID from embed page
+
+    # Step 2: megaplay embed page → player data-id
     player_id = await resolve_embed(embed_url)
     logger.info(f"Player ID: {player_id}")
-    
-    # Step 3: Get m3u8 source
+
+    # Step 3: getSources → m3u8
     sources = await resolve_sources(player_id, embed_url)
     m3u8_url = sources["sources"]["file"]
     logger.info(f"M3U8 URL: {m3u8_url}")
-    
-    # Build subtitles list
+
+    # The mewstream CDN checks Referer — downloads 403 without it
+    referer = f"{MEGAPLAY_BASE}/"
+
     subtitles = []
     for track in sources.get("tracks", []):
         if track.get("kind") == "captions":
@@ -258,27 +346,34 @@ async def resolve_stream(url: str, audio_lang: str = "sub") -> StreamInfo:
                 "label": track.get("label", "Unknown"),
                 "default": track.get("default", False),
             })
-    
-    # Probe available qualities via yt-dlp
-    qualities = await _probe_qualities(m3u8_url)
-    
+
+    qualities = await _probe_qualities(m3u8_url, referer)
+
     return StreamInfo(
         m3u8_url=m3u8_url,
-        title=episode.get("title", slug),
-        episode_number=episode.get("episodeNumber", 0),
-        anime_title=anime.get("Japanese", anime.get("_id", "Unknown")),
+        title=title,
+        episode_number=episode_number,
+        anime_title=anime_title,
         subtitles=subtitles,
         qualities=qualities,
         intro=sources.get("intro"),
         outro=sources.get("outro"),
+        referer=referer,
     )
 
 
-async def _probe_qualities(m3u8_url: str) -> list:
+async def _probe_qualities(m3u8_url: str, referer: Optional[str] = None) -> list:
     """Probe available quality levels from the m3u8."""
     try:
+        cmd = [
+            "yt-dlp", "--no-check-certificates", "--dump-json",
+            "--extractor-args", "generic:impersonate",
+        ]
+        if referer:
+            cmd += ["--add-header", f"Referer:{referer}"]
+        cmd.append(m3u8_url)
         proc = await asyncio.create_subprocess_exec(
-            "yt-dlp", "--no-check-certificates", "--dump-json", m3u8_url,
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

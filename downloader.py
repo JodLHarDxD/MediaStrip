@@ -30,7 +30,7 @@ async def _download_anime(url: str, output_folder: Path, queue: asyncio.Queue):
         await queue.put({"type": "log", "value": f"Resolved: {stream.anime_title} — {stream.title} (Ep {stream.episode_number})"})
         await queue.put({"type": "filename", "value": f"{stream.anime_title}_ep{stream.episode_number:02d}.mp4"})
         await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
-        await download_video(stream.m3u8_url, output_folder, queue)
+        await download_video(stream.m3u8_url, output_folder, queue, referer=stream.referer)
     except Exception as e:
         await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
 

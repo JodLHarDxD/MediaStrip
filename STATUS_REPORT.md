@@ -110,12 +110,17 @@ User drops file → POST /remove-watermark (multipart, max 500MB)
 
 ```
 URL matches hianime/aniwatch/kaido domains → anime_extractor.resolve_stream()
-  Step 1: slug extracted from URL
-  Step 2: GET myani.cfd/api/episode/{slug} → episode metadata + embed URL
-  Step 3: GET megaplay.buzz embed page → extract data-id (player ID)
-  Step 4: GET megaplay.buzz/stream/getSources?id={player_id} → m3u8 URL
-  Step 5: m3u8 handed to yt-dlp with --extractor-args generic:impersonate
-         (bypasses Cloudflare on CDN) + Referer header support
+  Step 1: scrape the watch page directly (curl_cffi, Cloudflare bypass) →
+          megaplay embed URL + anime title + episode number from inline JSON.
+          NO myani.cfd dependency (it was a single point of failure — went 503).
+          Fallback: legacy myani.cfd API if the page structure changes.
+  Step 2: GET megaplay.buzz embed page → extract data-id (player ID)
+  Step 3: GET megaplay.buzz/stream/getSources?id={player_id} → m3u8 URL + subs
+  Step 4: m3u8 handed to yt-dlp with --extractor-args generic:impersonate
+          + Referer: https://megaplay.buzz/ (mewstream CDN 403s without it)
+
+All HTTP in the resolver goes through curl_cffi (impersonate=chrome) so
+Cloudflare challenges don't stall it; httpx fallback if curl_cffi absent.
 ```
 
 ### 3.4 SSE / Job State
