@@ -579,6 +579,36 @@ async def download_generated_media(bucket: str, file_path: str):
     return FileResponse(target, filename=target.name)
 
 
+@app.get("/api/catalog")
+async def catalog():
+    """Everything already downloaded/processed on this server — lets a fresh
+    page visit show the catalog instead of only live-job results."""
+    groups: list[dict] = []
+
+    if DOWNLOADS_DIR.exists():
+        loose: list[Path] = []
+        for entry in DOWNLOADS_DIR.iterdir():
+            if entry.is_dir():
+                files = [p for p in entry.rglob("*") if p.is_file()]
+                artifacts = _serialize_artifacts(files)
+                if artifacts:
+                    groups.append({"source": "download", "ts": entry.stat().st_mtime, "artifacts": artifacts})
+            elif entry.is_file():
+                loose.append(entry)
+        artifacts = _serialize_artifacts(loose)
+        if artifacts:
+            groups.append({"source": "download", "ts": max(p.stat().st_mtime for p in loose), "artifacts": artifacts})
+
+    if OUTPUT_DIR.exists():
+        out_files = [p for p in OUTPUT_DIR.iterdir() if p.is_file()]
+        artifacts = _serialize_artifacts(out_files)
+        if artifacts:
+            groups.append({"source": "output", "ts": max(p.stat().st_mtime for p in out_files), "artifacts": artifacts})
+
+    groups.sort(key=lambda g: g["ts"])  # oldest first — the client prepends
+    return {"groups": groups[-50:]}
+
+
 @app.post("/api/job/{job_id}/cancel")
 @limiter.limit("30/minute")
 async def cancel_job(request: Request, job_id: str):

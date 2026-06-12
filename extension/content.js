@@ -375,6 +375,7 @@
         panel.querySelector(".__ms_vprog").classList.add("__ms_von");
         const link = panel.querySelector(".__ms_vopen");
         link.href = res.watchUrl;
+        link.classList.add("__ms_von"); // reachable from the start, not only on done
         const cancelBtn = panel.querySelector(".__ms_vcancel");
         cancelBtn.classList.add("__ms_von");
         cancelBtn.addEventListener("click", () => {

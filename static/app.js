@@ -393,8 +393,14 @@ function registerCatalogVideos(scope = document) {
   });
 }
 
-function addArtifactsToCatalog(prefix, artifacts) {
+const catalogSeenUrls = new Set();
+
+function addArtifactsToCatalog(prefix, artifacts, when = new Date()) {
   if (!Array.isArray(artifacts) || !artifacts.length) return;
+  // a job can arrive twice (history load + live SSE replay) — show each file once
+  artifacts = artifacts.filter(a => a?.url && !catalogSeenUrls.has(a.url));
+  if (!artifacts.length) return;
+  artifacts.forEach(a => catalogSeenUrls.add(a.url));
 
   const stream = document.getElementById('results-stream');
   const empty = document.getElementById('results-empty');
@@ -422,7 +428,7 @@ function addArtifactsToCatalog(prefix, artifacts) {
 
   const meta = document.createElement('div');
   meta.className = 'catalog-group-meta';
-  meta.textContent = `${artifacts.length} ${artifacts.length === 1 ? 'file' : 'files'} · ${formatCatalogTimestamp()}`;
+  meta.textContent = `${artifacts.length} ${artifacts.length === 1 ? 'file' : 'files'} · ${formatCatalogTimestamp(when)}`;
 
   head.append(titleWrap, meta);
 
@@ -788,6 +794,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initStatsCounters();
   initFeatureCards();
 
+  // Everything already on the server — so a fresh visit shows the catalog
+  loadCatalogHistory();
+
   // Extension-triggered jobs land here via /?job=<id> — attach to its SSE stream
   const extJob = new URLSearchParams(location.search).get('job');
   if (extJob) {
@@ -795,3 +804,20 @@ document.addEventListener('DOMContentLoaded', () => {
     streamProgress(extJob, 'dl');
   }
 });
+
+async function loadCatalogHistory() {
+  try {
+    const res = await fetch('/api/catalog');
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const group of data.groups || []) {
+      addArtifactsToCatalog(
+        group.source === 'output' ? 'wm' : 'dl',
+        group.artifacts,
+        new Date(group.ts * 1000)
+      );
+    }
+  } catch (_) {
+    /* server unreachable — catalog stays empty */
+  }
+}
