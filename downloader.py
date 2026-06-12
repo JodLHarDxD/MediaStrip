@@ -149,6 +149,7 @@ async def download_video(
     referer: str | None = None,
     cookies: str | list | None = None,
     single_item: bool = False,
+    _is_fallback: bool = False,
 ):
     # Support "URL|referer=https://site.com" syntax for CDNs that check Referer
     if "|referer=" in url:
@@ -314,6 +315,27 @@ async def download_video(
 
             await queue.put({"type": "done", "filename": filename or "", "files": saved_files})
         else:
+            # Sniffed stream URLs are often session/IP-signed — they 403 when
+            # replayed from the server. Re-resolve fresh from the player page
+            # (megaplay/hianime URLs route through the anime resolver there).
+            if (
+                not _is_fallback
+                and last_error
+                and "403" in last_error
+                and referer
+                and referer.startswith("http")
+                and referer != url
+                and re.search(r"\.(m3u8|mpd)([?#]|$)", parsed_url.path)
+            ):
+                await queue.put({
+                    "type": "log",
+                    "value": "Stream URL rejected (403 — likely session-bound). Re-resolving from the player page...",
+                })
+                await download_video(
+                    referer, output_folder, queue,
+                    cookies=cookies, single_item=True, _is_fallback=True,
+                )
+                return
             await queue.put({"type": "error", "message": _friendly_ytdlp_error(last_error)})
 
     except FileNotFoundError:

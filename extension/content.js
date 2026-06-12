@@ -279,7 +279,16 @@
       if (pu) {
         // in an iframe the parent page is the better cookie/referer context
         const parent = !isTop && document.referrer.startsWith("http") ? document.referrer : pu;
-        opts.push({ label: "Auto-extract from this page", note: "best quality", kind: "page", url: pu, page_url: parent });
+        const pageOpt = { label: "Auto-extract from this page", note: "best quality", kind: "page", url: pu, page_url: parent };
+        // anime player hosts: server-side resolve mints a fresh stream URL —
+        // sniffed ones are session-signed and 403 from the server. Default to it.
+        if (/(^|\.)megaplay\.buzz$/.test(location.hostname)) {
+          pageOpt.label = "This episode — auto-resolve";
+          pageOpt.note = "recommended";
+          opts.unshift(pageOpt);
+        } else {
+          opts.push(pageOpt);
+        }
       }
     }
 
