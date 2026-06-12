@@ -40,12 +40,17 @@ _ANIME_URL_PATTERN = re.compile(
 )
 
 
-async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
+async def download_video(
+    url: str,
+    output_folder: Path,
+    queue: asyncio.Queue,
+    referer: str | None = None,
+    cookies: str | None = None,
+):
     # Support "URL|referer=https://site.com" syntax for CDNs that check Referer
-    referer: str | None = None
     if "|referer=" in url:
-        url, referer = url.split("|referer=", 1)
-        referer = referer.strip()
+        url, pipe_referer = url.split("|referer=", 1)
+        referer = referer or pipe_referer.strip()
 
     if _ANIME_AVAILABLE and _anime_parse(url):
         await _download_anime(url, output_folder, queue)
@@ -83,6 +88,10 @@ async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
 
     if referer:
         cmd.extend(["--add-header", f"Referer:{referer}"])
+
+    # Forward browser cookies for login-gated / session-protected streams
+    if cookies:
+        cmd.extend(["--add-header", f"Cookie:{cookies}"])
 
     cmd.append(url)
 

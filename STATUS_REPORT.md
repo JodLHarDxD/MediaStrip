@@ -17,7 +17,7 @@
 | **Streaming** | SSE (Server-Sent Events) | `EventSource` in browser → FastAPI async generator |
 | **Video Downloader** | yt-dlp | 1000+ sites, format selector: `bestvideo+bestaudio→mp4`, 8 concurrent fragments |
 | **Direct Downloader** | Custom (`segmented.py`) | IDM-style: 8 parallel HTTP Range connections, auto-fallback to single stream |
-| **Browser Extension** | Chrome MV3 (`extension/`) | Media sniffing via observational webRequest + floating download button |
+| **Browser Extension** | Chrome MV3 (`extension/`) | Chrome/Edge/Brave. Media sniffing via observational webRequest + floating download button + cookie forwarding for login-gated streams |
 | **Video Processing** | ffmpeg | Audio merge, stream copy (no re-encode), frame output |
 | **Frame Analysis** | OpenCV headless | Temporal variance watermark detection |
 | **AI Inpainting** | LaMa (`simple-lama-inpainting`) + PyTorch | GPU (CUDA) — local only, not on Railway |

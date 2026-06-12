@@ -186,6 +186,7 @@ async def download_direct(
     queue: asyncio.Queue,
     referer: str | None = None,
     filename_hint: str | None = None,
+    cookies: str | None = None,
     connections: int = DEFAULT_CONNECTIONS,
 ):
     """IDM-style direct download: probe → split → parallel Range fetch → assemble."""
@@ -195,6 +196,8 @@ async def download_direct(
     headers = {"User-Agent": USER_AGENT}
     if referer:
         headers["Referer"] = referer
+    if cookies:
+        headers["Cookie"] = cookies
 
     try:
         timeout = httpx.Timeout(30.0, read=120.0)

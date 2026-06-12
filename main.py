@@ -383,6 +383,7 @@ class ExtensionDownloadRequest(BaseModel):
     page_url: str | None = None
     kind: str = "auto"  # "direct" | "manifest" | "page" | "auto"
     filename: str | None = None
+    cookies: str | None = None  # browser Cookie header for login-gated streams
 
 
 def _classify_extension_url(url: str, kind: str) -> str:
@@ -422,14 +423,25 @@ async def extension_download(
             job_queues[job_id],
             referer=body.page_url,
             filename_hint=body.filename,
+            cookies=body.cookies,
         )
-    elif kind == "manifest" and body.page_url:
-        # downloader.py understands "URL|referer=..." for Referer-checking CDNs
+    elif kind == "manifest":
         background_tasks.add_task(
-            download_video, f"{body.url}|referer={body.page_url}", output_folder, job_queues[job_id]
+            download_video,
+            body.url,
+            output_folder,
+            job_queues[job_id],
+            referer=body.page_url,
+            cookies=body.cookies,
         )
     else:
-        background_tasks.add_task(download_video, body.url, output_folder, job_queues[job_id])
+        background_tasks.add_task(
+            download_video,
+            body.url,
+            output_folder,
+            job_queues[job_id],
+            cookies=body.cookies,
+        )
 
     return {"job_id": job_id, "kind": kind, "watch_url": f"/?job={job_id}"}
 

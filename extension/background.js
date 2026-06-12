@@ -94,8 +94,35 @@ async function getServerUrl() {
   return (stored.serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
 }
 
+// Build a Cookie header for the media URL — login-gated streams (m3u8 behind a
+// session) need the same cookies the browser would send. Scoped to the target
+// domain only; merges page-domain cookies when the page differs (CDN subdomains).
+async function gatherCookies(payload) {
+  const urls = [];
+  if (payload.url && payload.url.startsWith("http")) urls.push(payload.url);
+  if (payload.page_url && payload.page_url !== payload.url) urls.push(payload.page_url);
+
+  const jar = new Map();
+  for (const url of urls) {
+    try {
+      const cookies = await chrome.cookies.getAll({ url });
+      for (const c of cookies) {
+        if (!jar.has(c.name)) jar.set(c.name, c.value);
+      }
+    } catch (_) {
+      /* host may be restricted */
+    }
+  }
+  if (!jar.size) return null;
+  return Array.from(jar, ([name, value]) => `${name}=${value}`).join("; ");
+}
+
 async function sendToServer(payload) {
   const server = await getServerUrl();
+  if (!payload.cookies) {
+    const cookies = await gatherCookies(payload);
+    if (cookies) payload = { ...payload, cookies };
+  }
   try {
     const res = await fetch(`${server}/api/extension/download`, {
       method: "POST",
