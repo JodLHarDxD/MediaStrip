@@ -150,15 +150,36 @@
   text-overflow: ellipsis !important;
 }
 .__ms_vstatus.__ms_verr { color: #FF4D6A !important; }
+.__ms_vrow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-top: 7px !important;
+}
 .__ms_vopen {
   display: none;
-  margin-top: 7px !important;
   font-size: 11.5px !important;
   color: #00E5FF !important;
   text-decoration: none !important;
 }
 .__ms_vopen.__ms_von { display: inline-block !important; }
 .__ms_vopen:hover { text-decoration: underline !important; }
+.__ms_vcancel {
+  display: none;
+  margin-left: auto !important;
+  padding: 3px 10px !important;
+  border: 1px solid rgba(255, 77, 106, 0.4) !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #FF4D6A !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+.__ms_vcancel.__ms_von { display: inline-block !important; }
+.__ms_vcancel:hover { background: rgba(255, 77, 106, 0.12) !important; }
+.__ms_vcancel:disabled { opacity: 0.5 !important; pointer-events: none !important; }
 
 /* ── toast ───────────────────────────────────────────────────────────────── */
 .__mediastrip_toast {

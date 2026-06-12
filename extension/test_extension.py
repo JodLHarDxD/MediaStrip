@@ -6,12 +6,14 @@ import http.server
 import json
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
 EXT = str(Path(__file__).parent.resolve())
 PORT = 8765
+CANCEL_HITS = []
 TEST_PAGE = """
 <!doctype html><html><head><title>ms-test</title></head><body>
 <h1>MediaStrip test page</h1>
@@ -34,13 +36,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path.startswith("/api/extension/ping"):
             return self._send('{"ok": true, "app": "mediastrip"}', "application/json")
         if self.path.startswith("/stream/"):
-            # mock SSE: progress -> done
+            # mock SSE: progress -> pause (cancel window) -> done
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.end_headers()
             for ev in (
                 {"type": "filename", "value": "test_video.mp4"},
                 {"type": "progress", "percent": 42.0, "speed": "9.1MiB/s", "eta": "00:02"},
+            ):
+                self.wfile.write(f"data: {json.dumps(ev)}\n\n".encode())
+                self.wfile.flush()
+            time.sleep(2.5)  # window for the cancel click
+            for ev in (
                 {"type": "progress", "percent": 100.0, "speed": "", "eta": ""},
                 {"type": "done", "filename": "test_video.mp4", "files": []},
             ):
@@ -54,6 +61,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._send(
                 '{"job_id": "t1", "kind": "direct", "watch_url": "/?job=t1"}', "application/json"
             )
+        if "/cancel" in self.path:
+            CANCEL_HITS.append(self.path)
+            return self._send('{"ok": true}', "application/json")
         self._send("{}", "application/json")
 
     def log_message(self, *a):
@@ -116,10 +126,16 @@ def main():
 
         # 3. download -> background relays mock SSE -> progress -> Saved
         page.click(".__ms_vgo")
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(1200)  # inside the mock's cancel window
         results["progress_shown"] = page.evaluate(
             "document.querySelector('.__ms_vprog')?.classList.contains('__ms_von') || false"
         )
+        results["cancel_visible_during_dl"] = page.evaluate(
+            "document.querySelector('.__ms_vcancel')?.classList.contains('__ms_von') || false"
+        )
+        page.click(".__ms_vcancel")
+        page.wait_for_timeout(3000)  # mock finishes its stream
+        results["cancel_endpoint_hit"] = len(CANCEL_HITS) > 0 and "/api/job/t1/cancel" in CANCEL_HITS[0]
         results["status_text"] = page.evaluate(
             "document.querySelector('.__ms_vstatus')?.textContent || ''"
         )

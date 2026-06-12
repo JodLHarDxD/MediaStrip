@@ -1526,3 +1526,20 @@ body::after {
   .site-loader__mark     { width: 260px; height: 260px; }
   .site-loader__wordmark { font-size: 38px; }
 }
+
+/* ── cancel running job ─────────────────────────────────────────────────── */
+.cancel-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 77, 106, 0.35);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--error, #FF4D6A);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.cancel-btn:hover { background: rgba(255, 77, 106, 0.1); border-color: #FF4D6A; }
+.cancel-btn:disabled { opacity: 0.5; cursor: default; }

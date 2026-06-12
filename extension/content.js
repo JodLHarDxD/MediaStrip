@@ -74,6 +74,55 @@
     return document.referrer && document.referrer.startsWith("http") ? document.referrer : null;
   }
 
+  // ── YouTube: pin the click to ONE video ─────────────────────────────────────
+  // Feed/home/channel pages extract to MANY videos server-side; only offer a
+  // download when the element resolves to a single canonical watch URL.
+  function ytCanonical(href) {
+    try {
+      const u = new URL(href, location.origin);
+      const v = u.searchParams.get("v");
+      if (u.pathname === "/watch" && v) return "https://www.youtube.com/watch?v=" + v;
+      let m = u.pathname.match(/^\/shorts\/([\w-]+)/);
+      if (m) return "https://www.youtube.com/shorts/" + m[1];
+      m = u.pathname.match(/^\/(?:embed|live)\/([\w-]+)/);
+      if (m) return "https://www.youtube.com/watch?v=" + m[1];
+      if (u.hostname.endsWith("youtu.be") && u.pathname.length > 1) {
+        return "https://www.youtube.com/watch?v=" + u.pathname.slice(1).split("/")[0];
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function ytVideoUrl(media) {
+    const fromPage = ytCanonical(location.href);
+    if (fromPage) return fromPage; // watch/shorts/embed page — page IS the video
+    // hover-preview / thumbnail players: find the per-video link around them
+    const scopes = [
+      media.closest("a[href*='watch'], a[href^='/shorts/']"),
+      media.closest("ytd-video-preview"),
+      media.closest(
+        "ytd-rich-item-renderer, ytd-video-renderer, ytd-grid-video-renderer, ytd-compact-video-renderer, ytd-reel-item-renderer"
+      ),
+    ];
+    for (const scope of scopes) {
+      if (!scope) continue;
+      if (scope.tagName === "A") {
+        const c = ytCanonical(scope.href);
+        if (c) return c;
+      }
+      const a = scope.querySelector("a[href*='watch?v='], a[href^='/shorts/']");
+      if (a) {
+        const c = ytCanonical(a.getAttribute("href"));
+        if (c) return c;
+      }
+    }
+    return null; // can't pin to one video — no button
+  }
+
+  const isYouTube = () => YT_RE.test(location.hostname);
+
   function getSniffed() {
     return new Promise((resolve) => {
       if (!alive()) return resolve([]);
@@ -99,7 +148,11 @@
   function scan() {
     if (!alive()) return destroy();
     document.querySelectorAll("video, audio").forEach((el) => {
-      if (!attached.has(el) && mediaBigEnough(el)) attach(el);
+      if (attached.has(el) || !mediaBigEnough(el)) return;
+      // only show a button we can stand behind: on YouTube the element must
+      // resolve to exactly one video
+      if (isYouTube() && !ytVideoUrl(el)) return;
+      attach(el);
     });
     for (const [el, entry] of attached) {
       if (!el.isConnected) {
@@ -188,10 +241,12 @@
     const src = media.currentSrc || media.src || "";
     const opts = [];
 
-    // YouTube: the only correct download is the extractor on the page URL —
-    // everything else (thumbnails, range-chunks) is junk
-    if (YT_RE.test(location.hostname) && isTop) {
-      return [{ label: "Full video — best quality", note: "server extractor", kind: "page", url: location.href, page_url: location.href }];
+    // YouTube: exactly one option — THIS video's canonical URL (never the page,
+    // which can extract to a whole feed). No URL → no options.
+    if (isYouTube()) {
+      const vu = ytVideoUrl(media);
+      if (!vu) return [];
+      return [{ label: "This video — best quality", note: "server extractor", kind: "page", url: vu, page_url: vu }];
     }
 
     if (src.startsWith("http")) {
@@ -263,7 +318,10 @@
         `<div class='__ms_vopts'>${rows}</div>` +
         "<div class='__ms_vdest'>Saves to <b>MediaStrip downloads</b> <span class='__ms_vdest_srv'></span></div>" +
         "<button class='__ms_vgo'>⬇ Download</button>" +
-        "<div class='__ms_vprog'><div class='__ms_vbar'><div class='__ms_vbar_fill'></div></div><div class='__ms_vstatus'></div><a class='__ms_vopen' target='_blank'>Open in MediaStrip ↗</a></div>";
+        "<div class='__ms_vprog'><div class='__ms_vbar'><div class='__ms_vbar_fill'></div></div>" +
+        "<div class='__ms_vstatus'></div><div class='__ms_vrow'>" +
+        "<a class='__ms_vopen' target='_blank'>Open in MediaStrip ↗</a>" +
+        "<button class='__ms_vcancel'>✕ Cancel</button></div></div>";
       // labels via textContent — URLs/filenames are untrusted page data
       panel.querySelectorAll(".__ms_vopt_label").forEach((el, i) => {
         el.textContent = opts[i].label;
@@ -317,6 +375,19 @@
         panel.querySelector(".__ms_vprog").classList.add("__ms_von");
         const link = panel.querySelector(".__ms_vopen");
         link.href = res.watchUrl;
+        const cancelBtn = panel.querySelector(".__ms_vcancel");
+        cancelBtn.classList.add("__ms_von");
+        cancelBtn.addEventListener("click", () => {
+          cancelBtn.disabled = true;
+          cancelBtn.textContent = "Cancelling…";
+          try {
+            chrome.runtime.sendMessage({ type: "cancel-job", jobId: res.jobId }, () => {
+              void chrome.runtime.lastError; // result arrives via the progress stream
+            });
+          } catch (_) {
+            /* orphaned — stream will stall, server keeps running */
+          }
+        });
         watchJob(panel, res.jobId, res.watchUrl);
       });
     } catch (_) {
@@ -330,6 +401,8 @@
   function watchJob(panel, jobId) {
     const fill = panel.querySelector(".__ms_vbar_fill");
     const status = panel.querySelector(".__ms_vstatus");
+    const cancelBtn = panel.querySelector(".__ms_vcancel");
+    const hideCancel = () => cancelBtn.classList.remove("__ms_von");
     status.textContent = "Starting…";
     let port;
     try {
@@ -350,9 +423,11 @@
         fill.style.width = "100%";
         status.textContent = "Saved ✓";
         panel.querySelector(".__ms_vopen").classList.add("__ms_von");
+        hideCancel();
       } else if (ev.type === "error") {
         status.textContent = ev.message || "Download failed";
         status.classList.add("__ms_verr");
+        hideCancel();
       } else if (ev.type === "disconnected") {
         status.textContent = "Running on server — open MediaStrip to watch";
         panel.querySelector(".__ms_vopen").classList.add("__ms_von");

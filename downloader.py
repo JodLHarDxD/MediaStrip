@@ -53,13 +53,14 @@ def _write_cookie_jar(cookies, url: str, page_url: str | None, dest: Path) -> Pa
     return dest
 
 
-async def _stream_subprocess(cmd: list[str], line_handler) -> int:
+async def _stream_subprocess(cmd: list[str], line_handler, on_proc=None) -> int:
     """Run *cmd* via subprocess.Popen in a worker thread, streaming stdout lines
     to *line_handler* (a sync callback executed on the event-loop thread).
 
     Uses Popen instead of asyncio.create_subprocess_exec because some ASGI server
     event loops raise NotImplementedError on create_subprocess_exec. Popen is
     OS-level and works under any loop. Returns the process exit code.
+    *on_proc* (optional) receives the Popen handle — used for cancellation.
     """
     loop = asyncio.get_running_loop()
     done: asyncio.Future = loop.create_future()
@@ -75,6 +76,8 @@ async def _stream_subprocess(cmd: list[str], line_handler) -> int:
                 errors="replace",
                 bufsize=1,
             )
+            if on_proc:
+                loop.call_soon_threadsafe(on_proc, proc)
             for raw in proc.stdout:
                 line = raw.rstrip("\r\n")
                 if line:
@@ -126,6 +129,7 @@ async def download_video(
     queue: asyncio.Queue,
     referer: str | None = None,
     cookies: str | list | None = None,
+    single_item: bool = False,
 ):
     # Support "URL|referer=https://site.com" syntax for CDNs that check Referer
     if "|referer=" in url:
@@ -148,6 +152,10 @@ async def download_video(
     host = parsed_url.netloc.lower()
     is_instagram_post = "instagram.com" in host and re.search(r"/p/[^/?#]+", parsed_url.path)
     playlist_flag = "--yes-playlist" if is_instagram_post else "--no-playlist"
+    # extension per-video clicks: hard cap at one item even if the URL extracts
+    # to a feed/channel/playlist (instagram carousels are the exception — their
+    # items ARE the single post)
+    limit_one = single_item and not is_instagram_post
 
     cmd = [
         sys.executable, "-m", "yt_dlp",
@@ -161,6 +169,9 @@ async def download_video(
         "--newline",
         "--output", output_template,
     ]
+
+    if limit_one:
+        cmd.extend(["--playlist-items", "1"])
 
     # m3u8 streams (e.g. anime CDNs) are behind Cloudflare — requires browser impersonation
     if parsed_url.path.endswith(".m3u8"):
@@ -241,7 +252,13 @@ async def download_video(
 
             queue.put_nowait({"type": "log", "value": line})
 
-        returncode = await _stream_subprocess(cmd, handle_line)
+        returncode = await _stream_subprocess(
+            cmd, handle_line, on_proc=getattr(queue, "register_proc", None)
+        )
+
+        if getattr(queue, "cancelled", False):
+            await queue.put({"type": "error", "message": "Download cancelled."})
+            return
 
         if returncode == 0:
             saved_files = [str(path.resolve()) for path in sorted(output_folder.rglob("*")) if path.is_file()]

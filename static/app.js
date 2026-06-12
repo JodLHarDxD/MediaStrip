@@ -120,14 +120,45 @@ async function startWatermarkRemoval() {
 }
 
 // ─── SSE Progress ────────────────────────────────────────────────────────────
+const activeJobIds = { dl: null, wm: null };
+
 function closeEventSource(prefix) {
   activeEventSources[prefix]?.close();
   activeEventSources[prefix] = null;
+  activeJobIds[prefix] = null;
+  setCancelVisible(prefix, false);
 }
+
+function setCancelVisible(prefix, on) {
+  const btn = document.getElementById(`${prefix}-cancel`);
+  if (btn) {
+    btn.style.display = on ? '' : 'none';
+    btn.disabled = false;
+    btn.textContent = '✕ Cancel';
+  }
+}
+
+async function cancelJob(prefix) {
+  const jobId = activeJobIds[prefix];
+  if (!jobId) return;
+  const btn = document.getElementById(`${prefix}-cancel`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+  try {
+    await fetch(`/api/job/${jobId}/cancel`, { method: 'POST' });
+    // the job emits its error event ("Download cancelled.") through the stream
+  } catch (_) {
+    if (btn) { btn.disabled = false; btn.textContent = '✕ Cancel'; }
+    showToast('Could not reach the server to cancel', 'error');
+  }
+}
+
+document.getElementById('dl-cancel')?.addEventListener('click', () => cancelJob('dl'));
 
 function streamProgress(jobId, prefix) {
   closeEventSource(prefix);
 
+  activeJobIds[prefix] = jobId;
+  setCancelVisible(prefix, true);
   document.getElementById(`${prefix}-progress`).classList.add('visible');
 
   const es = new EventSource(`/stream/${jobId}`);

@@ -29,6 +29,10 @@ STREAM_CHUNK = 64 * 1024
 SEGMENT_RETRIES = 3
 PROGRESS_INTERVAL = 0.3                # seconds between progress events
 
+
+class _Cancelled(Exception):
+    """User cancelled the job (JobChannel.cancelled flag)."""
+
 _CT_EXT = {
     "video/mp4": ".mp4", "video/webm": ".webm", "video/quicktime": ".mov",
     "video/x-matroska": ".mkv", "audio/mpeg": ".mp3", "audio/mp4": ".m4a",
@@ -122,6 +126,8 @@ class _Progress:
         self._last_time = time.monotonic()
 
     async def add(self, n: int):
+        if getattr(self.queue, "cancelled", False):
+            raise _Cancelled()
         self.downloaded += n
         now = time.monotonic()
         if now - self._last_emit < PROGRESS_INTERVAL:
@@ -248,6 +254,8 @@ async def download_direct(
                 "filename": filename,
                 "files": [str(final_path.resolve())],
             })
+    except _Cancelled:
+        await queue.put({"type": "error", "message": "Download cancelled."})
     except httpx.HTTPStatusError as e:
         await queue.put({
             "type": "error",

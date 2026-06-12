@@ -164,6 +164,8 @@ class JobChannel:
         self.history: list[dict] = []
         self.subscribers: set[asyncio.Queue] = set()
         self.finished_at: float | None = None
+        self.proc = None  # subprocess handle, registered by the downloader
+        self.cancelled = False
 
     async def put(self, event: dict):
         self.put_nowait(event)
@@ -192,6 +194,24 @@ class JobChannel:
 
     def unsubscribe(self, q: asyncio.Queue):
         self.subscribers.discard(q)
+
+    def register_proc(self, proc):
+        self.proc = proc
+        if self.cancelled:  # cancel arrived before the process spawned
+            self._kill()
+
+    def cancel(self):
+        self.cancelled = True  # cooperative flag for in-process downloads
+        self._kill()
+
+    def _kill(self):
+        p = self.proc
+        if p is None or p.poll() is not None:
+            return
+        try:
+            p.terminate()
+        except OSError:
+            pass
 
 
 job_queues: dict[str, JobChannel] = {}
@@ -511,6 +531,9 @@ async def extension_download(
             output_folder,
             job_queues[job_id],
             cookies=body.cookies,
+            # the user clicked ONE video — never let a page that extracts to a
+            # feed/playlist fan out into a mass download
+            single_item=True,
         )
 
     return {"job_id": job_id, "kind": kind, "watch_url": f"/?job={job_id}"}
@@ -554,6 +577,18 @@ async def serve_generated_media(bucket: str, file_path: str):
 async def download_generated_media(bucket: str, file_path: str):
     target = _resolve_media_path(bucket, file_path)
     return FileResponse(target, filename=target.name)
+
+
+@app.post("/api/job/{job_id}/cancel")
+@limiter.limit("30/minute")
+async def cancel_job(request: Request, job_id: str):
+    channel = job_queues.get(job_id)
+    if channel is None:
+        raise HTTPException(404, "Job not found")
+    if channel.finished_at:
+        return {"ok": False, "status": "already finished"}
+    channel.cancel()
+    return {"ok": True}
 
 
 @app.get("/stream/{job_id}")

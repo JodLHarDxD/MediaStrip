@@ -251,4 +251,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     pingServer().then(sendResponse);
     return true;
   }
+  if (msg.type === "cancel-job") {
+    (async () => {
+      const server = await getServerUrl();
+      try {
+        const res = await fetch(`${server}/api/job/${encodeURIComponent(msg.jobId)}/cancel`, {
+          method: "POST",
+        });
+        sendResponse({ ok: res.ok });
+      } catch (_) {
+        sendResponse({ ok: false });
+      }
+    })();
+    return true;
+  }
 });
