@@ -1,6 +1,8 @@
 import asyncio
 import json
 import mimetypes
+import os
+import shutil
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -90,7 +92,6 @@ def _cleanup_old_files():
             try:
                 if item.stat().st_mtime < cutoff:
                     if item.is_dir():
-                        import shutil
                         shutil.rmtree(item, ignore_errors=True)
                     else:
                         item.unlink(missing_ok=True)
@@ -98,14 +99,67 @@ def _cleanup_old_files():
                 pass
 
 
+# Hosted containers (Railway) count files written to the ephemeral disk
+# against the MEMORY limit (cgroup page cache) — finished downloads parked in
+# downloads/ pin the container at its ceiling. Evict oldest first over the cap.
+STORAGE_CAP_MB = int(os.environ.get("MS_STORAGE_CAP_MB", "400"))
+
+
+def _evict_to_cap():
+    cap = STORAGE_CAP_MB * 1024 * 1024
+    entries: list[tuple[float, int, Path]] = []
+    for root_dir in [DOWNLOADS_DIR, OUTPUT_DIR, UPLOADS_DIR]:
+        if not root_dir.exists():
+            continue
+        for item in root_dir.iterdir():
+            try:
+                size = (
+                    sum(p.stat().st_size for p in item.rglob("*") if p.is_file())
+                    if item.is_dir()
+                    else item.stat().st_size
+                )
+                entries.append((item.stat().st_mtime, size, item))
+            except OSError:
+                pass
+
+    total = sum(size for _, size, _ in entries)
+    if total <= cap:
+        return
+
+    running = {jid for jid, ch in job_queues.items() if ch.finished_at is None}
+    for _, size, item in sorted(entries):
+        if total <= cap:
+            break
+        if item.name in running or any(item.name.startswith(jid) for jid in running):
+            continue  # never evict a job still downloading/processing
+        try:
+            if item.is_dir():
+                shutil.rmtree(item, ignore_errors=True)
+            else:
+                item.unlink(missing_ok=True)
+            total -= size
+        except OSError:
+            pass
+
+
+def _schedule_eviction():
+    try:
+        asyncio.get_running_loop()
+        asyncio.create_task(asyncio.to_thread(_evict_to_cap))
+    except RuntimeError:
+        _evict_to_cap()
+
+
 async def _cleanup_loop():
     while True:
         await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
         await asyncio.to_thread(_cleanup_old_files)
+        await asyncio.to_thread(_evict_to_cap)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await asyncio.to_thread(_evict_to_cap)  # boot under the cap
     task = asyncio.create_task(_cleanup_loop())
     yield
     task.cancel()
@@ -223,6 +277,7 @@ def _new_job_channel(job_id: str) -> JobChannel:
     for jid, ch in list(job_queues.items()):
         if ch.finished_at and now - ch.finished_at > JOB_CHANNEL_TTL:
             job_queues.pop(jid, None)
+    _schedule_eviction()  # free disk/memory budget before the new job lands
     channel = JobChannel()
     job_queues[job_id] = channel
     return channel
@@ -547,17 +602,23 @@ async def start_watermark_removal(
     file: UploadFile = File(...),
     platform: str = Form("tiktok"),
 ):
-    # Enforce upload size limit
-    content = await file.read(MAX_UPLOAD_BYTES + 1)
-    if len(content) > MAX_UPLOAD_BYTES:
-        raise HTTPException(413, f"File too large — maximum is {MAX_UPLOAD_BYTES // (1024*1024)} MB")
-
     job_id = str(uuid.uuid4())
     _new_job_channel(job_id)
 
     safe_name = _safe_filename(file.filename or "upload")
     upload_path = UPLOADS_DIR / f"{job_id}_{safe_name}"
-    upload_path.write_bytes(content)
+
+    # Stream to disk in chunks — reading the whole upload into RAM (up to
+    # 500 MB) blows the container's memory ceiling
+    size = 0
+    with open(upload_path, "wb") as fh:
+        while chunk := await file.read(1024 * 1024):
+            size += len(chunk)
+            if size > MAX_UPLOAD_BYTES:
+                fh.close()
+                upload_path.unlink(missing_ok=True)
+                raise HTTPException(413, f"File too large — maximum is {MAX_UPLOAD_BYTES // (1024*1024)} MB")
+            fh.write(chunk)
 
     output_dir = OUTPUT_DIR / job_id
     output_dir.mkdir(parents=True, exist_ok=True)
