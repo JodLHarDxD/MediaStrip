@@ -126,7 +126,10 @@ async def _download_anime(url: str, output_folder: Path, queue: asyncio.Queue):
         await queue.put({"type": "log", "value": f"Resolved: {stream.anime_title} — {stream.title} (Ep {stream.episode_number})"})
         await queue.put({"type": "filename", "value": f"{stream.anime_title}_ep{stream.episode_number:02d}.mp4"})
         await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
-        await download_video(stream.m3u8_url, output_folder, queue, referer=stream.referer)
+        await download_video(
+            stream.m3u8_url, output_folder, queue, referer=stream.referer,
+            title_hint=f"{stream.anime_title}_ep{stream.episode_number:02d}",
+        )
     except Exception as e:
         await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
 
@@ -140,7 +143,10 @@ async def _download_megaplay(url: str, output_folder: Path, queue: asyncio.Queue
         stream = await _megaplay_resolve(url)
         await queue.put({"type": "log", "value": f"Resolved: {stream.title}"})
         await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
-        await download_video(stream.m3u8_url, output_folder, queue, referer=stream.referer)
+        await download_video(
+            stream.m3u8_url, output_folder, queue, referer=stream.referer,
+            title_hint=stream.title,
+        )
     except Exception as e:
         await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
 
@@ -148,6 +154,32 @@ async def _download_megaplay(url: str, output_folder: Path, queue: asyncio.Queue
 _ANIME_URL_PATTERN = re.compile(
     r"https?://(?:hianime[s]?\.(?:se|to|sx|tv|me|watch)|aniwatch\.to|kaido\.to)/watch/"
 )
+
+
+_FFMPEG_HLS_ARGS: str | None = None
+
+
+def _ffmpeg_hls_args() -> str:
+    """ffmpeg flags to accept hostile HLS: anime CDNs disguise segments as
+    .webp/.ico/.jpg, which ffmpeg's extension whitelist rejects ('not in
+    allowed_segment_extensions'). Flag availability varies by ffmpeg version —
+    probe the installed demuxer once and cache."""
+    global _FFMPEG_HLS_ARGS
+    if _FFMPEG_HLS_ARGS is None:
+        try:
+            out = subprocess.run(
+                ["ffmpeg", "-hide_banner", "-h", "demuxer=hls"],
+                capture_output=True, text=True, timeout=10,
+            ).stdout
+        except Exception:
+            out = ""
+        args = []
+        if "allowed_extensions" in out:
+            args += ["-allowed_extensions", "ALL"]
+        if "extension_picky" in out:
+            args += ["-extension_picky", "0"]
+        _FFMPEG_HLS_ARGS = " ".join(args)
+    return _FFMPEG_HLS_ARGS
 
 
 def _ytdlp_context_flags(url: str, referer: str | None, jar_path: Path | None) -> list[str]:
@@ -201,6 +233,7 @@ async def _download_in_sections(
     jar_path: Path | None,
     duration: float,
     total_parts: int,
+    title_hint: str | None = None,
 ) -> None:
     """Time-section delivery for yt-dlp jobs too big for the memory budget.
 
@@ -235,10 +268,19 @@ async def _download_in_sections(
             "--concurrent-fragments", "8",
             "--progress", "--newline",
             "--download-sections", section,
-            "--output", str(output_folder / f"%(title).70s_%(id)s.part{idx + 1:02d}.%(ext)s"),
+            "--output", str(
+                output_folder
+                / f"{title_hint if title_hint else '%(title).70s_%(id)s'}.part{idx + 1:02d}.%(ext)s"
+            ),
             *_ytdlp_context_flags(url, referer, jar_path),
-            url,
         ]
+        # section downloads go through ffmpeg — teach its HLS demuxer to accept
+        # the CDN's disguised segment names
+        if urlparse(url).path.endswith(".m3u8"):
+            hls_args = _ffmpeg_hls_args()
+            if hls_args:
+                cmd.extend(["--downloader-args", f"ffmpeg_i:{hls_args}"])
+        cmd.append(url)
 
         last_error = None
         last_pct = -1
@@ -318,6 +360,7 @@ async def download_video(
     referer: str | None = None,
     cookies: str | list | None = None,
     single_item: bool = False,
+    title_hint: str | None = None,
     _is_fallback: bool = False,
 ):
     # Support "URL|referer=https://site.com" syntax for CDNs that check Referer
@@ -337,7 +380,10 @@ async def download_video(
         return
 
     output_folder.mkdir(parents=True, exist_ok=True)
-    output_template = str(output_folder / "%(title)s_%(id)s.%(ext)s")
+    if title_hint:
+        title_hint = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", title_hint).strip(". ")[:120]
+    stem = title_hint if title_hint else "%(title)s_%(id)s"
+    output_template = str(output_folder / f"{stem}.%(ext)s")
 
     format_selector = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
     parsed_url = urlparse(url)
@@ -399,7 +445,8 @@ async def download_video(
                 total_parts = math.ceil(duration / SECTION_SEC)
             if total_parts > 1:
                 await _download_in_sections(
-                    url, output_folder, queue, referer, jar_path, duration, total_parts
+                    url, output_folder, queue, referer, jar_path, duration, total_parts,
+                    title_hint=title_hint,
                 )
                 return
 
