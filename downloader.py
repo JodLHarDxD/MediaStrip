@@ -71,6 +71,7 @@ async def download_video(url: str, output_folder: Path, queue: asyncio.Queue):
         "--write-thumbnail",
         "--convert-thumbnails", "jpg",
         playlist_flag,
+        "--concurrent-fragments", "8",
         "--progress",
         "--newline",
         "--output", output_template,

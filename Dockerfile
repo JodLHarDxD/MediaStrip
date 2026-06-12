@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /install /usr/local
 RUN pip install --no-cache-dir "curl_cffi>=0.7.0"
-COPY main.py downloader.py watermark.py anime_extractor.py robots.txt sitemap.xml ./
+COPY main.py downloader.py segmented.py watermark.py anime_extractor.py robots.txt sitemap.xml ./
 COPY static/ ./static/
 
 RUN mkdir -p downloads output uploads

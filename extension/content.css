@@ -1,0 +1,73 @@
+/* MediaStrip Catcher — floating button + toast (max specificity, max z-index) */
+
+.__mediastrip_btn {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 12px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.95), rgba(123, 97, 255, 0.95)) !important;
+  color: #06090d !important;
+  font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease !important;
+  box-shadow: 0 4px 18px rgba(0, 229, 255, 0.35), 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+  line-height: 1 !important;
+}
+
+.__mediastrip_btn_visible {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  pointer-events: auto !important;
+}
+
+.__mediastrip_btn:hover {
+  transform: translateY(0) scale(1.05) !important;
+  box-shadow: 0 6px 24px rgba(0, 229, 255, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+.__mediastrip_btn_busy {
+  opacity: 0.6 !important;
+  pointer-events: none !important;
+}
+
+.__mediastrip_btn svg {
+  display: block !important;
+}
+
+.__mediastrip_toast {
+  position: fixed !important;
+  right: 18px !important;
+  bottom: 18px !important;
+  z-index: 2147483647 !important;
+  padding: 11px 16px !important;
+  border-radius: 10px !important;
+  background: rgba(14, 19, 24, 0.96) !important;
+  border: 1px solid rgba(0, 229, 255, 0.4) !important;
+  color: #f0f4f8 !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: 13px !important;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+  pointer-events: none !important;
+}
+
+.__mediastrip_toast_show {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.__mediastrip_toast_err {
+  border-color: rgba(255, 77, 106, 0.5) !important;
+}

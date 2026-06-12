@@ -21,6 +21,7 @@ from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from downloader import download_video
+from segmented import download_direct
 from watermark import remove_watermark
 
 try:
@@ -365,6 +366,72 @@ async def start_download(request: Request, body: DownloadRequest, background_tas
     output_folder.mkdir(parents=True, exist_ok=True)
     background_tasks.add_task(download_video, body.url, output_folder, job_queues[job_id])
     return {"job_id": job_id}
+
+
+# ── Browser extension API ─────────────────────────────────────────────────────
+DIRECT_MEDIA_EXTS = {
+    ".mp4", ".webm", ".mkv", ".mov", ".m4v", ".avi", ".gif",
+    ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".wav",
+    ".jpg", ".jpeg", ".png", ".webp", ".tiff", ".bmp",
+    ".zip", ".pdf",
+}
+MANIFEST_EXTS = {".m3u8", ".mpd"}
+
+
+class ExtensionDownloadRequest(BaseModel):
+    url: str
+    page_url: str | None = None
+    kind: str = "auto"  # "direct" | "manifest" | "page" | "auto"
+    filename: str | None = None
+
+
+def _classify_extension_url(url: str, kind: str) -> str:
+    if kind in {"direct", "manifest", "page"}:
+        return kind
+    ext = Path(urlparse(url).path).suffix.lower()
+    if ext in MANIFEST_EXTS:
+        return "manifest"
+    if ext in DIRECT_MEDIA_EXTS:
+        return "direct"
+    return "page"
+
+
+@app.get("/api/extension/ping")
+async def extension_ping():
+    return {"ok": True, "app": "mediastrip"}
+
+
+@app.post("/api/extension/download")
+@limiter.limit("20/minute")
+async def extension_download(
+    request: Request, body: ExtensionDownloadRequest, background_tasks: BackgroundTasks
+):
+    _validate_download_url(body.url)
+    kind = _classify_extension_url(body.url, body.kind)
+
+    job_id = str(uuid.uuid4())
+    job_queues[job_id] = asyncio.Queue()
+    output_folder = DOWNLOADS_DIR / job_id
+    output_folder.mkdir(parents=True, exist_ok=True)
+
+    if kind == "direct":
+        background_tasks.add_task(
+            download_direct,
+            body.url,
+            output_folder,
+            job_queues[job_id],
+            referer=body.page_url,
+            filename_hint=body.filename,
+        )
+    elif kind == "manifest" and body.page_url:
+        # downloader.py understands "URL|referer=..." for Referer-checking CDNs
+        background_tasks.add_task(
+            download_video, f"{body.url}|referer={body.page_url}", output_folder, job_queues[job_id]
+        )
+    else:
+        background_tasks.add_task(download_video, body.url, output_folder, job_queues[job_id])
+
+    return {"job_id": job_id, "kind": kind, "watch_url": f"/?job={job_id}"}
 
 
 @app.post("/remove-watermark")

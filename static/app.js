@@ -756,4 +756,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initCoordsTicker();
   initStatsCounters();
   initFeatureCards();
+
+  // Extension-triggered jobs land here via /?job=<id> — attach to its SSE stream
+  const extJob = new URLSearchParams(location.search).get('job');
+  if (extJob) {
+    document.getElementById('tool-download')?.scrollIntoView({ behavior: 'smooth' });
+    streamProgress(extJob, 'dl');
+  }
 });
