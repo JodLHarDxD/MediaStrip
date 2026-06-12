@@ -11,9 +11,11 @@ Drop this into your existing MediaStrip project.
 
 import re
 import os
+import sys
 import uuid
 import asyncio
 import logging
+import subprocess
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -363,25 +365,28 @@ async def resolve_stream(url: str, audio_lang: str = "sub") -> StreamInfo:
 
 
 async def _probe_qualities(m3u8_url: str, referer: Optional[str] = None) -> list:
-    """Probe available quality levels from the m3u8."""
+    """Probe available quality levels from the m3u8.
+
+    Runs yt-dlp via subprocess.run in a thread (not asyncio.create_subprocess_exec,
+    which raises NotImplementedError on some ASGI event loops). Non-critical —
+    returns [] on any failure.
+    """
+    cmd = [
+        sys.executable, "-m", "yt_dlp", "--no-check-certificates", "--dump-json",
+        "--extractor-args", "generic:impersonate",
+    ]
+    if referer:
+        cmd += ["--add-header", f"Referer:{referer}"]
+    cmd.append(m3u8_url)
+
+    def _run():
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
     try:
-        cmd = [
-            "yt-dlp", "--no-check-certificates", "--dump-json",
-            "--extractor-args", "generic:impersonate",
-        ]
-        if referer:
-            cmd += ["--add-header", f"Referer:{referer}"]
-        cmd.append(m3u8_url)
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await proc.communicate()
-        
+        proc = await asyncio.to_thread(_run)
         if proc.returncode == 0:
             import json
-            data = json.loads(stdout)
+            data = json.loads(proc.stdout)
             return [
                 {
                     "format_id": f["format_id"],
@@ -393,7 +398,7 @@ async def _probe_qualities(m3u8_url: str, referer: Optional[str] = None) -> list
             ]
     except Exception as e:
         logger.warning(f"Quality probe failed: {e}")
-    
+
     return []
 
 
@@ -417,23 +422,20 @@ async def download_stream(
     
     if output_format == OutputFormat.AUDIO:
         output_file = job_dir / f"{safe_title}.aac"
-        cmd = _build_audio_cmd(stream.m3u8_url, str(output_file), quality)
+        cmd = _build_audio_cmd(stream.m3u8_url, str(output_file), quality, stream.referer)
     else:
         output_file = job_dir / f"{safe_title}.mp4"
-        cmd = _build_video_cmd(stream.m3u8_url, str(output_file), quality)
-    
+        cmd = _build_video_cmd(stream.m3u8_url, str(output_file), quality, stream.referer)
+
     logger.info(f"Downloading [{output_format.value}]: {' '.join(cmd)}")
-    
+
     try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        proc = await asyncio.to_thread(
+            subprocess.run, cmd, capture_output=True, text=True
         )
-        stdout, stderr = await proc.communicate()
-        
+
         if proc.returncode != 0:
-            error_msg = stderr.decode(errors="replace")[-500:]
+            error_msg = (proc.stderr or "")[-500:]
             logger.error(f"Download failed: {error_msg}")
             return DownloadResult(
                 job_id=job_id,
@@ -471,15 +473,23 @@ async def download_stream(
         )
 
 
-def _build_video_cmd(m3u8_url: str, output: str, quality: Quality) -> list:
-    """Build yt-dlp command for full MP4 download."""
-    cmd = [
-        "yt-dlp",
+def _ytdlp_base() -> list:
+    """yt-dlp invocation that works in Docker (module, not a PATH binary) and
+    passes Cloudflare via browser impersonation."""
+    return [
+        sys.executable, "-m", "yt_dlp",
         "--no-check-certificates",
         "--no-warnings",
-        "-o", output,
+        "--extractor-args", "generic:impersonate",
     ]
-    
+
+
+def _build_video_cmd(m3u8_url: str, output: str, quality: Quality, referer: Optional[str] = None) -> list:
+    """Build yt-dlp command for full MP4 download."""
+    cmd = _ytdlp_base() + ["-o", output]
+    if referer:
+        cmd += ["--add-header", f"Referer:{referer}"]
+
     # Quality selection
     if quality == Quality.Q1080:
         cmd.extend(["-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]"])
@@ -494,18 +504,17 @@ def _build_video_cmd(m3u8_url: str, output: str, quality: Quality) -> list:
     return cmd
 
 
-def _build_audio_cmd(m3u8_url: str, output: str, quality: Quality) -> list:
+def _build_audio_cmd(m3u8_url: str, output: str, quality: Quality, referer: Optional[str] = None) -> list:
     """Build yt-dlp command for audio-only extraction."""
-    cmd = [
-        "yt-dlp",
-        "--no-check-certificates",
-        "--no-warnings",
+    cmd = _ytdlp_base() + [
         "-x",                          # extract audio
         "--audio-format", "aac",       # output as AAC (good for VoxDub processing)
         "--audio-quality", "0",        # best audio quality
         "-o", output,
     ]
-    
+    if referer:
+        cmd += ["--add-header", f"Referer:{referer}"]
+
     # For audio, just grab best available (audio track is same across qualities)
     cmd.append(m3u8_url)
     return cmd

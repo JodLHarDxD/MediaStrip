@@ -1,12 +1,50 @@
 import asyncio
 import json
 import re
+import subprocess
 import sys
+import threading
 from html import unescape
 from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
+
+
+async def _stream_subprocess(cmd: list[str], line_handler) -> int:
+    """Run *cmd* via subprocess.Popen in a worker thread, streaming stdout lines
+    to *line_handler* (a sync callback executed on the event-loop thread).
+
+    Uses Popen instead of asyncio.create_subprocess_exec because some ASGI server
+    event loops raise NotImplementedError on create_subprocess_exec. Popen is
+    OS-level and works under any loop. Returns the process exit code.
+    """
+    loop = asyncio.get_running_loop()
+    done: asyncio.Future = loop.create_future()
+
+    def worker():
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
+            )
+            for raw in proc.stdout:
+                line = raw.rstrip("\r\n")
+                if line:
+                    loop.call_soon_threadsafe(line_handler, line)
+            proc.stdout.close()
+            rc = proc.wait()
+            loop.call_soon_threadsafe(done.set_result, rc)
+        except Exception as e:  # propagate to the awaiting coroutine
+            loop.call_soon_threadsafe(done.set_exception, e)
+
+    threading.Thread(target=worker, daemon=True).start()
+    return await done
 
 _ANIME_IMPORT_ERROR: str | None = None
 try:
@@ -25,7 +63,7 @@ INSTAGRAM_EMBED_HEADERS = {
 async def _download_anime(url: str, output_folder: Path, queue: asyncio.Queue):
     """Resolve anime URL → m3u8, then delegate to the standard yt-dlp pipeline."""
     try:
-        await queue.put({"type": "log", "value": "Anime URL detected — resolving stream via myani.cfd..."})
+        await queue.put({"type": "log", "value": "Anime URL detected — resolving stream..."})
         stream = await _anime_resolve(url)
         await queue.put({"type": "log", "value": f"Resolved: {stream.anime_title} — {stream.title} (Ep {stream.episode_number})"})
         await queue.put({"type": "filename", "value": f"{stream.anime_title}_ep{stream.episode_number:02d}.mp4"})
@@ -96,20 +134,12 @@ async def download_video(
     cmd.append(url)
 
     try:
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-
         filename = None
         total_items = 1
         current_item = 1
 
-        async for line_bytes in process.stdout:
-            line = line_bytes.decode("utf-8", errors="replace").strip()
-            if not line:
-                continue
+        def handle_line(line: str):
+            nonlocal filename, total_items, current_item
 
             playlist_match = re.search(r"Downloading\s+(\d+)\s+items?\s+of\s+(\d+)", line)
             if playlist_match:
@@ -122,12 +152,12 @@ async def download_video(
 
             if "[download] Destination:" in line:
                 filename = line.split("Destination:")[-1].strip()
-                await queue.put({"type": "filename", "value": Path(filename).name})
+                queue.put_nowait({"type": "filename", "value": Path(filename).name})
 
             thumb_match = re.search(r"Writing .* thumbnail \d+ to:\s+(.+)$", line)
             if thumb_match:
                 thumb_path = thumb_match.group(1).strip()
-                await queue.put({"type": "filename", "value": Path(thumb_path).name})
+                queue.put_nowait({"type": "filename", "value": Path(thumb_path).name})
 
             progress_match = re.search(r"\[download\]\s+([\d.]+)%", line)
             if progress_match:
@@ -141,13 +171,13 @@ async def download_video(
                 eta_match = re.search(r"ETA\s+([\d:]+)", line)
                 if eta_match:
                     eta = eta_match.group(1)
-                await queue.put({"type": "progress", "percent": pct, "speed": speed, "eta": eta})
+                queue.put_nowait({"type": "progress", "percent": pct, "speed": speed, "eta": eta})
 
-            await queue.put({"type": "log", "value": line})
+            queue.put_nowait({"type": "log", "value": line})
 
-        await process.wait()
+        returncode = await _stream_subprocess(cmd, handle_line)
 
-        if process.returncode == 0:
+        if returncode == 0:
             saved_files = [str(path.resolve()) for path in sorted(output_folder.rglob("*")) if path.is_file()]
 
             if is_instagram_post:
