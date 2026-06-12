@@ -93,7 +93,12 @@ async def _stream_subprocess(cmd: list[str], line_handler, on_proc=None) -> int:
 
 _ANIME_IMPORT_ERROR: str | None = None
 try:
-    from anime_extractor import parse_anime_url as _anime_parse, resolve_stream as _anime_resolve
+    from anime_extractor import (
+        parse_anime_url as _anime_parse,
+        parse_megaplay_url as _megaplay_parse,
+        resolve_megaplay_stream as _megaplay_resolve,
+        resolve_stream as _anime_resolve,
+    )
     _ANIME_AVAILABLE = True
 except Exception as _e:
     _ANIME_AVAILABLE = False
@@ -112,6 +117,20 @@ async def _download_anime(url: str, output_folder: Path, queue: asyncio.Queue):
         stream = await _anime_resolve(url)
         await queue.put({"type": "log", "value": f"Resolved: {stream.anime_title} — {stream.title} (Ep {stream.episode_number})"})
         await queue.put({"type": "filename", "value": f"{stream.anime_title}_ep{stream.episode_number:02d}.mp4"})
+        await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
+        await download_video(stream.m3u8_url, output_folder, queue, referer=stream.referer)
+    except Exception as e:
+        await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
+
+
+async def _download_megaplay(url: str, output_folder: Path, queue: asyncio.Queue):
+    """Bare megaplay embed URL (anime player iframe) → m3u8 → yt-dlp.
+    yt-dlp has no megaplay extractor — its generic extractor dies with
+    'Unsupported URL', so resolve the real stream ourselves."""
+    try:
+        await queue.put({"type": "log", "value": "Anime player URL detected — resolving stream..."})
+        stream = await _megaplay_resolve(url)
+        await queue.put({"type": "log", "value": f"Resolved: {stream.title}"})
         await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
         await download_video(stream.m3u8_url, output_folder, queue, referer=stream.referer)
     except Exception as e:
@@ -138,6 +157,9 @@ async def download_video(
 
     if _ANIME_AVAILABLE and _anime_parse(url):
         await _download_anime(url, output_folder, queue)
+        return
+    if _ANIME_AVAILABLE and _megaplay_parse(url):
+        await _download_megaplay(url, output_folder, queue)
         return
     if not _ANIME_AVAILABLE and _ANIME_URL_PATTERN.search(url):
         err = _ANIME_IMPORT_ERROR or "anime module not loaded"

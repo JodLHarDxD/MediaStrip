@@ -364,6 +364,48 @@ async def resolve_stream(url: str, audio_lang: str = "sub") -> StreamInfo:
     )
 
 
+MEGAPLAY_STREAM_PATTERN = re.compile(r"https?://megaplay\.buzz/stream/\S+")
+
+
+def parse_megaplay_url(url: str) -> bool:
+    """True for bare megaplay embed/stream URLs — what the browser extension's
+    in-iframe catcher sends when the user is inside the anime player frame."""
+    return bool(MEGAPLAY_STREAM_PATTERN.match(url))
+
+
+async def resolve_megaplay_stream(embed_url: str) -> StreamInfo:
+    """Resolve a megaplay embed URL directly to its m3u8 (chain steps 2+3 —
+    no hianime watch page involved)."""
+    player_id = await resolve_embed(embed_url)
+    sources = await resolve_sources(player_id, embed_url)
+    m3u8_url = sources["sources"]["file"]
+
+    subtitles = []
+    for track in sources.get("tracks", []):
+        if track.get("kind") == "captions":
+            subtitles.append({
+                "url": track["file"],
+                "label": track.get("label", "Unknown"),
+                "default": track.get("default", False),
+            })
+
+    # /stream/s-2/161029/sub → "megaplay_161029_sub"
+    parts = [p for p in embed_url.split("?")[0].split("/") if p]
+    ep_id = parts[-2] if len(parts) >= 2 else "stream"
+    lang = parts[-1] if parts else "sub"
+
+    return StreamInfo(
+        m3u8_url=m3u8_url,
+        title=f"megaplay_{ep_id}_{lang}",
+        episode_number=0,
+        anime_title="anime",
+        subtitles=subtitles,
+        intro=sources.get("intro"),
+        outro=sources.get("outro"),
+        referer=f"{MEGAPLAY_BASE}/",
+    )
+
+
 async def _probe_qualities(m3u8_url: str, referer: Optional[str] = None) -> list:
     """Probe available quality levels from the m3u8.
 

@@ -277,7 +277,9 @@
       });
       const pu = extractionUrl();
       if (pu) {
-        opts.push({ label: "Auto-extract from this page", note: "best quality", kind: "page", url: pu, page_url: pu });
+        // in an iframe the parent page is the better cookie/referer context
+        const parent = !isTop && document.referrer.startsWith("http") ? document.referrer : pu;
+        opts.push({ label: "Auto-extract from this page", note: "best quality", kind: "page", url: pu, page_url: parent });
       }
     }
 
