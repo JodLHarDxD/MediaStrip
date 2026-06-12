@@ -1,16 +1,17 @@
 # MediaStrip Catcher — Browser Extension
 
-IDM-style media catcher for Chrome / Edge / Brave. Shows a floating **MediaStrip**
-download button over any video or large image, sniffs streaming manifests (m3u8/DASH)
-from network traffic, forwards your session cookies for login-gated streams, and sends
-everything to your local MediaStrip server.
+IDM-style integrated media catcher for Chrome / Edge / Brave. Goes *inside* the page:
+scans the DOM for media, sniffs the HLS/DASH streams the player loads (even inside
+iframes), lists everything in a floating panel, forwards your session cookies for
+login-gated streams, and sends downloads to MediaStrip — no URL pasting.
 
 ## Install (Developer Mode)
 
-1. Start the MediaStrip server:
-   ```
-   python -m uvicorn main:app --port 8000
-   ```
+1. Pick your backend (set later in the popup's server field):
+   - **Default — the live site** `https://mediastrip.jodlx.in` (works out of the box;
+     the server downloads the media, then you grab the file from the catalog).
+   - **Local — closest to IDM** run `python -m uvicorn main:app --port 8000` and set the
+     server to `http://localhost:8000` so files land on your own machine.
 2. Open the extensions page:
    - **Chrome** → `chrome://extensions`
    - **Edge** → `edge://extensions`
@@ -25,13 +26,19 @@ everything to your local MediaStrip server.
 
 ## How it works
 
+Integrated, IDM-style — it goes *inside* the page, you never paste a URL:
+
 | Surface | What happens |
 |---------|--------------|
-| Hover a `<video>` or large image | Floating ⬇ MediaStrip button appears — click to download |
-| Video uses blob:/MSE (YouTube etc.) | Page URL is sent instead — server-side yt-dlp extracts the real stream |
+| **Floating launcher** (bottom-right) | Appears whenever media is found on the page; the badge shows how many items |
+| **Panel** (click the launcher) | Lists everything found: page `<video>`/`<audio>`/`<img>`, `<source>` tags, og:video meta, **and** the HLS/DASH streams the player loaded (network-sniffed). One ⬇ per item |
+| Video uses blob:/MSE (YouTube etc.) | "Download whole page (auto-extract)" sends the page URL → server-side yt-dlp pulls the real stream |
 | Direct file (mp4/jpg/zip…) | Server downloads with **8 parallel Range connections** (IDM-style) |
-| HLS/DASH manifest sniffed | Toolbar badge counts it — download from the popup, Referer auto-attached |
-| Toolbar popup | Lists everything caught on the tab + "Download media on this page" button |
+| HLS/DASH manifest | Caught at network level even inside iframes/obfuscated players; Referer + cookies auto-attached |
+| Toolbar popup | Same catch list + server URL setting + "Download media on this page" |
+
+The page is re-scanned on DOM changes and on `play`, so lazily-loaded players
+and single-page-app navigation are picked up automatically.
 
 ## Settings
 

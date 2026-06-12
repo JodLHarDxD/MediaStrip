@@ -2,7 +2,7 @@
 // Sniffs media network responses (observational webRequest — no blocking needed),
 // keeps a per-tab catch list, and forwards download requests to the MediaStrip server.
 
-const DEFAULT_SERVER = "http://localhost:8000";
+const DEFAULT_SERVER = "https://mediastrip.jodlx.in";
 const MAX_ITEMS_PER_TAB = 50;
 const MIN_MEDIA_BYTES = 100 * 1024; // ignore tiny blobs (ads, ping pixels)
 

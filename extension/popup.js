@@ -1,6 +1,6 @@
 // MediaStrip Catcher — popup logic
 
-const DEFAULT_SERVER = "http://localhost:8000";
+const DEFAULT_SERVER = "https://mediastrip.jodlx.in";
 let activeTab = null;
 let serverUrl = DEFAULT_SERVER;
 

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "MediaStrip Catcher",
-  "version": "1.1.0",
-  "description": "IDM-style media catcher for MediaStrip — floating download button on any video or image, automatic stream sniffing. Works in Chrome, Edge, and Brave.",
+  "version": "1.2.0",
+  "description": "IDM-style integrated media catcher — scans inside the page and sniffs streams, lists everything in a floating panel. One-click download to MediaStrip. Chrome, Edge, Brave.",
   "permissions": ["webRequest", "storage", "tabs", "cookies"],
   "host_permissions": ["<all_urls>"],
   "background": {
