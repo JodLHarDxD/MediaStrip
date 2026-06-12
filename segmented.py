@@ -323,7 +323,7 @@ async def download_direct(
             final_path = output_folder / filename
             await queue.put({"type": "filename", "value": filename})
 
-            if ranges_ok and size > PART_THRESHOLD:
+            if PART_THRESHOLD > 0 and ranges_ok and size > PART_THRESHOLD:
                 await _download_in_parts(client, final_url, size, filename, output_folder, queue, connections)
                 return
 
