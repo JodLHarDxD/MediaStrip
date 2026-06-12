@@ -1,14 +1,56 @@
 import asyncio
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import threading
 from html import unescape
 from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
+
+
+def _registered_domain(host: str) -> str:
+    parts = host.split(".")
+    return ".".join(parts[-2:]) if len(parts) >= 2 else host
+
+
+def _write_cookie_jar(cookies, url: str, page_url: str | None, dest: Path) -> Path | None:
+    """Write a Netscape-format cookie file for yt-dlp.
+
+    Accepts either structured cookie dicts from the extension (name/value/domain/
+    path/secure/expirationDate) or a legacy raw Cookie-header string. yt-dlp's
+    extractors only use cookies from a real jar (--cookies) — a Cookie header via
+    --add-header never reaches the API requests that need them (YouTube bot-check).
+    """
+    lines = ["# Netscape HTTP Cookie File"]
+    if isinstance(cookies, str):
+        # header string has no domain info — pin to the target/page registered domains
+        hosts = {urlparse(u).netloc for u in (url, page_url or "") if u.startswith("http")}
+        domains = {"." + _registered_domain(h) for h in hosts if h}
+        for pair in cookies.split(";"):
+            name, _, value = pair.strip().partition("=")
+            if name and value:
+                for domain in sorted(domains):
+                    lines.append(f"{domain}\tTRUE\t/\tFALSE\t0\t{name}\t{value}")
+    else:
+        for c in cookies or []:
+            name = c.get("name")
+            if not name:
+                continue
+            domain = c.get("domain") or ""
+            include_sub = "TRUE" if domain.startswith(".") else "FALSE"
+            path = c.get("path") or "/"
+            secure = "TRUE" if c.get("secure") else "FALSE"
+            expiry = int(c.get("expirationDate") or 0)
+            lines.append(f"{domain}\t{include_sub}\t{path}\t{secure}\t{expiry}\t{name}\t{c.get('value', '')}")
+    if len(lines) == 1:
+        return None
+    dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return dest
 
 
 async def _stream_subprocess(cmd: list[str], line_handler) -> int:
@@ -83,7 +125,7 @@ async def download_video(
     output_folder: Path,
     queue: asyncio.Queue,
     referer: str | None = None,
-    cookies: str | None = None,
+    cookies: str | list | None = None,
 ):
     # Support "URL|referer=https://site.com" syntax for CDNs that check Referer
     if "|referer=" in url:
@@ -127,9 +169,18 @@ async def download_video(
     if referer:
         cmd.extend(["--add-header", f"Referer:{referer}"])
 
-    # Forward browser cookies for login-gated / session-protected streams
+    # Forward browser cookies for login-gated / session-protected streams.
+    # Written OUTSIDE output_folder — everything in there gets published as a
+    # download artifact.
+    jar_path: Path | None = None
     if cookies:
-        cmd.extend(["--add-header", f"Cookie:{cookies}"])
+        fd, tmp = tempfile.mkstemp(prefix="ms_jar_", suffix=".txt")
+        os.close(fd)
+        jar_path = _write_cookie_jar(cookies, url, referer, Path(tmp))
+        if jar_path:
+            cmd.extend(["--cookies", str(jar_path)])
+        else:
+            os.unlink(tmp)
 
     cmd.append(url)
 
@@ -137,9 +188,13 @@ async def download_video(
         filename = None
         total_items = 1
         current_item = 1
+        last_error = None
 
         def handle_line(line: str):
-            nonlocal filename, total_items, current_item
+            nonlocal filename, total_items, current_item, last_error
+
+            if line.startswith("ERROR:"):
+                last_error = line
 
             playlist_match = re.search(r"Downloading\s+(\d+)\s+items?\s+of\s+(\d+)", line)
             if playlist_match:
@@ -209,12 +264,35 @@ async def download_video(
 
             await queue.put({"type": "done", "filename": filename or "", "files": saved_files})
         else:
-            await queue.put({"type": "error", "message": "yt-dlp exited with an error — check the URL and try again"})
+            await queue.put({"type": "error", "message": _friendly_ytdlp_error(last_error)})
 
     except FileNotFoundError:
         await queue.put({"type": "error", "message": "yt-dlp not found — install it with: pip install yt-dlp or python -m pip install yt-dlp"})
     except Exception as e:
         await queue.put({"type": "error", "message": f"{type(e).__name__}: {e}"})
+    finally:
+        if jar_path:
+            try:
+                os.unlink(jar_path)
+            except OSError:
+                pass
+
+
+def _friendly_ytdlp_error(last_error: str | None) -> str:
+    if not last_error:
+        return "yt-dlp exited with an error — check the URL and try again"
+    if "Sign in to confirm" in last_error or "not a bot" in last_error:
+        return (
+            "YouTube blocked this server with a bot-check. Use the MediaStrip browser "
+            "extension on the video page instead — it forwards your YouTube login cookies. "
+            "Or run MediaStrip locally (python -m uvicorn main:app --port 8000)."
+        )
+    if "429" in last_error or "Too Many Requests" in last_error:
+        return (
+            "YouTube is rate-limiting this server (HTTP 429). Wait a few minutes and retry, "
+            "or use the browser extension so your own session cookies go with the request."
+        )
+    return last_error.removeprefix("ERROR:").strip()
 
 
 def _instagram_shortcode(url: str) -> str | None:

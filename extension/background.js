@@ -111,9 +111,10 @@ async function getServerUrl() {
   return (stored.serverUrl || DEFAULT_SERVER).replace(/\/+$/, "");
 }
 
-// Build a Cookie header for the media URL — login-gated streams (m3u8 behind a
-// session) need the same cookies the browser would send. Scoped to the target
-// domain only; merges page-domain cookies when the page differs (CDN subdomains).
+// Gather structured cookies for the media + page URLs — login-gated streams
+// (YouTube bot-check, m3u8 behind a session) need the same cookies the browser
+// would send. Structured (with domain/path) so the server can build a real
+// yt-dlp cookie jar. Scoped to the target/page domains only — no blanket dump.
 async function gatherCookies(payload) {
   const urls = [];
   if (payload.url && payload.url.startsWith("http")) urls.push(payload.url);
@@ -124,14 +125,23 @@ async function gatherCookies(payload) {
     try {
       const cookies = await chrome.cookies.getAll({ url });
       for (const c of cookies) {
-        if (!jar.has(c.name)) jar.set(c.name, c.value);
+        const key = `${c.domain}|${c.path}|${c.name}`;
+        if (!jar.has(key)) {
+          jar.set(key, {
+            name: c.name,
+            value: c.value,
+            domain: c.domain,
+            path: c.path,
+            secure: c.secure,
+            expirationDate: c.expirationDate || 0,
+          });
+        }
       }
     } catch (_) {
       /* host may be restricted */
     }
   }
-  if (!jar.size) return null;
-  return Array.from(jar, ([name, value]) => `${name}=${value}`).join("; ");
+  return jar.size ? Array.from(jar.values()) : null;
 }
 
 async function sendToServer(payload) {

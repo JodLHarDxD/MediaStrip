@@ -383,7 +383,20 @@ class ExtensionDownloadRequest(BaseModel):
     page_url: str | None = None
     kind: str = "auto"  # "direct" | "manifest" | "page" | "auto"
     filename: str | None = None
-    cookies: str | None = None  # browser Cookie header for login-gated streams
+    # Cookies for login-gated streams: structured dicts (extension >= 1.3.1,
+    # carries domain/path so yt-dlp gets a real cookie jar) or a legacy
+    # Cookie-header string (older extensions).
+    cookies: str | list[dict] | None = None
+
+
+def _cookie_header(cookies: str | list[dict] | None) -> str | None:
+    """Flatten cookies to a Cookie-header string for the direct HTTP downloader."""
+    if not cookies:
+        return None
+    if isinstance(cookies, str):
+        return cookies
+    pairs = [f"{c['name']}={c.get('value', '')}" for c in cookies if c.get("name")]
+    return "; ".join(pairs) or None
 
 
 def _classify_extension_url(url: str, kind: str) -> str:
@@ -423,7 +436,7 @@ async def extension_download(
             job_queues[job_id],
             referer=body.page_url,
             filename_hint=body.filename,
-            cookies=body.cookies,
+            cookies=_cookie_header(body.cookies),
         )
     elif kind == "manifest":
         background_tasks.add_task(

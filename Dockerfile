@@ -19,6 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /install /usr/local
 RUN pip install --no-cache-dir "curl_cffi>=0.7.0"
+
+# Deno — yt-dlp needs a JS runtime for YouTube signature solving (EJS);
+# without it formats go missing and bot-checks get more aggressive
+COPY --from=denoland/deno:bin /deno /usr/local/bin/deno
 COPY main.py downloader.py segmented.py watermark.py anime_extractor.py robots.txt sitemap.xml ./
 COPY static/ ./static/
 
