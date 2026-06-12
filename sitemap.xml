@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://mediastrip-jodl.up.railway.app/</loc>
+    <loc>https://mediastrip.jodlx.in/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <lastmod>2026-04-28</lastmod>
   </url>
   <url>
-    <loc>https://mediastrip-jodl.up.railway.app/blog/gpu-watermark-removal</loc>
+    <loc>https://mediastrip.jodlx.in/blog/gpu-watermark-removal</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <lastmod>2026-04-28</lastmod>
   </url>
   <url>
-    <loc>https://mediastrip-jodl.up.railway.app/blog/diffusion-watermark-remover</loc>
+    <loc>https://mediastrip.jodlx.in/blog/diffusion-watermark-remover</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <lastmod>2026-04-28</lastmod>

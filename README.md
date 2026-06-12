@@ -4,7 +4,7 @@
 
 A premium, self-hostable web app built for content creators — powered by yt-dlp, OpenCV, and LaMa AI inpainting. Clean dark UI, zero dependencies on third-party services.
 
-Live → [mediastrip-jodl.up.railway.app](https://mediastrip-jodl.up.railway.app)
+Live → [mediastrip.jodlx.in](https://mediastrip.jodlx.in)
 
 ---
 

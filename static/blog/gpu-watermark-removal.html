@@ -33,13 +33,13 @@
 
     <p>There is a second reason to prefer GPU watermark removal on your own machine, and it has nothing to do with quality. Cloud watermark removers require you to upload the file. For a 10 GB 4K clip, that alone can take longer than the actual processing. For unreleased client work, NDA-protected footage, or anything you simply do not want sitting on someone else's storage, upload is a non-starter. Local GPU watermark removal means the file never leaves your disk, the model never leaves your GPU, and there is no third party with a copy of your source material.</p>
 
-    <p>This is the design choice behind tools like <a href="https://mediastrip-jodl.up.railway.app/#tool-watermark">MediaStrip's watermark remover</a>, which runs LaMa on CUDA against the file in place rather than streaming it anywhere. Combined with selective re-encoding through ffmpeg, the typical output is visually indistinguishable from the source outside the inpainted region.</p>
+    <p>This is the design choice behind tools like <a href="https://mediastrip.jodlx.in/#tool-watermark">MediaStrip's watermark remover</a>, which runs LaMa on CUDA against the file in place rather than streaming it anywhere. Combined with selective re-encoding through ffmpeg, the typical output is visually indistinguishable from the source outside the inpainted region.</p>
 
     <h2>Where this fits in a real editing workflow</h2>
 
     <p>For most creators the GPU watermark removal workflow looks like this: pull the source clip down, mask the watermark region once, let the GPU pipeline batch every frame, and pipe the result back into your NLE. Because the unaffected pixels are bit-exact to the original, you can drop the cleaned file into a project alongside the source and they will color-match perfectly without any grading work. There is no hidden tone shift, no chroma drift, and no codec generation loss to fight in the grade.</p>
 
-    <p>If your source material starts on the open web, the same local-first principle applies upstream. The <a href="https://mediastrip-jodl.up.railway.app/#tool-download">video downloader</a> in the same toolkit pulls the clip at the highest available quality, which then feeds straight into the watermark pipeline at native resolution. Skipping a transcode step at the start of the chain is the simplest way to keep options open later.</p>
+    <p>If your source material starts on the open web, the same local-first principle applies upstream. The <a href="https://mediastrip.jodlx.in/#tool-download">video downloader</a> in the same toolkit pulls the clip at the highest available quality, which then feeds straight into the watermark pipeline at native resolution. Skipping a transcode step at the start of the chain is the simplest way to keep options open later.</p>
 
     <h2>What to look for in a GPU watermark removal tool</h2>
 
@@ -53,7 +53,7 @@
       <li><strong>Local execution</strong>, with no cloud upload step, so privacy and turnaround are both under your control.</li>
     </ul>
 
-    <p>Tools that hit all five of those points are still relatively rare. The <a href="https://mediastrip-jodl.up.railway.app/">MediaStrip homepage</a> lists the full toolkit if you want to compare against what you are using today.</p>
+    <p>Tools that hit all five of those points are still relatively rare. The <a href="https://mediastrip.jodlx.in/">MediaStrip homepage</a> lists the full toolkit if you want to compare against what you are using today.</p>
 
     <h2>Wrapping up</h2>
 

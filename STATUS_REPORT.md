@@ -1,7 +1,7 @@
 # MediaStrip — Software Status Report
 **Generated:** 2026-06-12  
 **Repo:** `d:\side_project\EditerX`  
-**Deployed:** `https://mediastrip-jodl.up.railway.app`  
+**Deployed:** `https://mediastrip.jodlx.in`  
 **Built by:** JodLHarDxD (`jodl.hrs03@gmail.com`)
 
 ---

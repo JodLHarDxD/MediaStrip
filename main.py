@@ -166,7 +166,7 @@ async def sitemap():
     return FileResponse(BASE_DIR / "sitemap.xml", media_type="application/xml")
 
 
-SITE_URL = "https://mediastrip-jodl.up.railway.app"
+SITE_URL = "https://mediastrip.jodlx.in"
 BLOG_DIR = STATIC_DIR / "blog"
 
 

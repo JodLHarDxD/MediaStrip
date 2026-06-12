@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mediastrip-jodl.up.railway.app/sitemap.xml
+Sitemap: https://mediastrip.jodlx.in/sitemap.xml
