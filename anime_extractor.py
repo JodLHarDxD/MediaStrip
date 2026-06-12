@@ -42,6 +42,42 @@ HEADERS = {
 MYANI_API = "https://myani.cfd/api"
 MEGAPLAY_BASE = "https://megaplay.buzz"
 
+# myani.cfd / megaplay sit behind Cloudflare — plain httpx (wrong TLS fingerprint)
+# gets stalled on the bot challenge. curl_cffi impersonates a real browser to pass it.
+try:
+    from curl_cffi.requests import AsyncSession as _CurlSession
+    _CURL_AVAILABLE = True
+except Exception:
+    _CURL_AVAILABLE = False
+
+
+async def _fetch(url: str, headers: dict | None = None, params: dict | None = None, timeout: int = 20):
+    """GET with Cloudflare-bypassing TLS impersonation (curl_cffi), httpx fallback.
+
+    Returned object exposes .status_code, .text, .json() in both backends.
+    """
+    merged = {**HEADERS, **(headers or {})}
+    if _CURL_AVAILABLE:
+        async with _CurlSession() as session:
+            return await session.get(
+                url, headers=merged, params=params, timeout=timeout, impersonate="chrome"
+            )
+    async with httpx.AsyncClient(
+        headers=merged, timeout=timeout, verify=False, follow_redirects=True
+    ) as client:
+        return await client.get(url, params=params)
+
+
+def _guard_upstream(resp, name: str):
+    """Raise a clear, user-facing error when a reverse-engineered upstream is down."""
+    if resp.status_code >= 500:
+        raise ValueError(
+            f"Anime source API ({name}) returned {resp.status_code} — it is currently down. "
+            "This is an upstream outage, not your download. Try again later."
+        )
+    if resp.status_code != 200:
+        raise ValueError(f"Anime source API ({name}) error {resp.status_code}.")
+
 
 # ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -113,15 +149,21 @@ async def resolve_episode(slug: str) -> dict:
     Step 1: slug → episode metadata via myani.cfd API
     Returns episode link (embed URL), anime info, etc.
     """
-    async with httpx.AsyncClient(headers=HEADERS, timeout=15, verify=False) as client:
-        resp = await client.get(f"{MYANI_API}/episode/{slug}")
-        resp.raise_for_status()
-        data = resp.json()
-        
-        if "episode" not in data:
-            raise ValueError(f"Episode not found for slug: {slug}")
-        
-        return data
+    try:
+        resp = await _fetch(f"{MYANI_API}/episode/{slug}", timeout=20)
+    except Exception as e:
+        raise ValueError(
+            "Anime source API (myani.cfd) is unreachable — it may be down. "
+            "This is an upstream outage, not your download. Try again later."
+        ) from e
+
+    _guard_upstream(resp, "myani.cfd")
+    data = resp.json()
+
+    if "episode" not in data:
+        raise ValueError(f"Episode not found for slug: {slug}")
+
+    return data
 
 
 async def resolve_embed(embed_url: str) -> int:
@@ -129,48 +171,46 @@ async def resolve_embed(embed_url: str) -> int:
     Step 2: embed URL → internal player ID (data-id)
     Fetches the megaplay embed page and extracts data-id from HTML.
     """
-    async with httpx.AsyncClient(
-        headers={**HEADERS, "Referer": "https://hianimes.se/"},
-        timeout=15,
-        verify=False,
-        follow_redirects=True,
-    ) as client:
-        resp = await client.get(embed_url)
-        resp.raise_for_status()
-        
-        soup = BeautifulSoup(resp.text, "html.parser")
-        player_div = soup.find(attrs={"data-id": True})
-        
-        if not player_div:
-            raise ValueError(f"Could not find data-id in embed page: {embed_url}")
-        
-        return int(player_div["data-id"])
+    try:
+        resp = await _fetch(embed_url, headers={"Referer": "https://hianimes.se/"}, timeout=20)
+    except Exception as e:
+        raise ValueError(
+            "Anime player host (megaplay.buzz) is unreachable — it may be down. Try again later."
+        ) from e
+
+    _guard_upstream(resp, "megaplay.buzz")
+    soup = BeautifulSoup(resp.text, "html.parser")
+    player_div = soup.find(attrs={"data-id": True})
+
+    if not player_div:
+        raise ValueError(f"Could not find data-id in embed page: {embed_url}")
+
+    return int(player_div["data-id"])
 
 
 async def resolve_sources(player_id: int, referer: str) -> dict:
     """
     Step 3: player ID → m3u8 URL via megaplay getSources API
     """
-    async with httpx.AsyncClient(
-        headers={
-            **HEADERS,
-            "Referer": referer,
-            "X-Requested-With": "XMLHttpRequest",
-        },
-        timeout=15,
-        verify=False,
-    ) as client:
-        resp = await client.get(
+    try:
+        resp = await _fetch(
             f"{MEGAPLAY_BASE}/stream/getSources",
+            headers={"Referer": referer, "X-Requested-With": "XMLHttpRequest"},
             params={"id": player_id},
+            timeout=20,
         )
-        resp.raise_for_status()
-        data = resp.json()
-        
-        if "sources" not in data or "file" not in data.get("sources", {}):
-            raise ValueError(f"No sources found for player ID: {player_id}")
-        
-        return data
+    except Exception as e:
+        raise ValueError(
+            "Anime player host (megaplay.buzz) is unreachable — it may be down. Try again later."
+        ) from e
+
+    _guard_upstream(resp, "megaplay.buzz")
+    data = resp.json()
+
+    if "sources" not in data or "file" not in data.get("sources", {}):
+        raise ValueError(f"No sources found for player ID: {player_id}")
+
+    return data
 
 
 async def resolve_stream(url: str, audio_lang: str = "sub") -> StreamInfo:
