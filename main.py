@@ -105,8 +105,8 @@ def _cleanup_old_files():
 STORAGE_CAP_MB = int(os.environ.get("MS_STORAGE_CAP_MB", "400"))
 
 
-def _evict_to_cap():
-    cap = STORAGE_CAP_MB * 1024 * 1024
+def _evict_to_cap(cap_bytes: int | None = None):
+    cap = STORAGE_CAP_MB * 1024 * 1024 if cap_bytes is None else cap_bytes
     entries: list[tuple[float, int, Path]] = []
     for root_dir in [DOWNLOADS_DIR, OUTPUT_DIR, UPLOADS_DIR]:
         if not root_dir.exists():
@@ -220,6 +220,8 @@ class JobChannel:
         self.finished_at: float | None = None
         self.proc = None  # subprocess handle, registered by the downloader
         self.cancelled = False
+        self.pending_part: Path | None = None  # chunked delivery: part awaiting pickup
+        self._resume = asyncio.Event()
 
     async def put(self, event: dict):
         self.put_nowait(event)
@@ -254,8 +256,19 @@ class JobChannel:
         if self.cancelled:  # cancel arrived before the process spawned
             self._kill()
 
+    async def wait_resume(self) -> bool:
+        """Chunked delivery: block until the user confirms the part was picked
+        up (resume) or cancels. Returns False on cancel."""
+        self._resume.clear()
+        await self._resume.wait()
+        return not self.cancelled
+
+    def resume(self):
+        self._resume.set()
+
     def cancel(self):
         self.cancelled = True  # cooperative flag for in-process downloads
+        self._resume.set()  # unblock a part-wait so the job can exit
         self._kill()
 
     def _kill(self):
@@ -682,6 +695,32 @@ async def cancel_job(request: Request, job_id: str):
     return {"ok": True}
 
 
+@app.post("/api/job/{job_id}/continue")
+@limiter.limit("60/minute")
+async def continue_job(request: Request, job_id: str):
+    """Chunked delivery: the user picked up the current part — delete it
+    server-side (frees the memory budget) and start the next part."""
+    channel = job_queues.get(job_id)
+    if channel is None:
+        raise HTTPException(404, "Job not found")
+    if channel.pending_part:
+        try:
+            channel.pending_part.unlink(missing_ok=True)
+        except OSError:
+            pass
+        channel.pending_part = None
+    channel.resume()
+    return {"ok": True}
+
+
+@app.post("/api/cleanup")
+@limiter.limit("10/minute")
+async def cleanup_storage(request: Request):
+    """Manual 'free server storage' — wipe every finished job's files."""
+    await asyncio.to_thread(_evict_to_cap, 0)
+    return {"ok": True}
+
+
 @app.get("/stream/{job_id}")
 async def stream_progress(job_id: str):
     if job_id not in job_queues:
@@ -698,6 +737,9 @@ async def stream_progress(job_id: str):
                     if data.get("type") == "done":
                         done_files = data.get("files") or ([data["filename"]] if data.get("filename") else [])
                         data = {**data, "artifacts": _serialize_artifacts(done_files)}
+                    elif data.get("type") == "part" and data.get("path"):
+                        arts = _serialize_artifacts([data["path"]])
+                        data = {**data, "artifact": arts[0] if arts else None}
                     yield f"data: {json.dumps(data)}\n\n"
                     if data.get("type") in ("done", "error"):
                         break

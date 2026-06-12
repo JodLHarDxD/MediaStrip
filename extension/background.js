@@ -211,7 +211,7 @@ chrome.runtime.onConnect.addListener((port) => {
           } catch (_) {
             continue;
           }
-          if (["progress", "filename", "done", "error"].includes(ev.type)) {
+          if (["progress", "filename", "done", "error", "part"].includes(ev.type)) {
             try {
               port.postMessage(ev);
             } catch (_) {

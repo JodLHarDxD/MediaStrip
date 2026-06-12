@@ -127,6 +127,7 @@ function closeEventSource(prefix) {
   activeEventSources[prefix] = null;
   activeJobIds[prefix] = null;
   setCancelVisible(prefix, false);
+  if (prefix === 'dl') document.getElementById('dl-part')?.setAttribute('hidden', '');
 }
 
 function setCancelVisible(prefix, on) {
@@ -195,6 +196,37 @@ function handleProgressEvent(data, p) {
     case 'log':
       if (data.value && data.value.trim()) appendLog(log, data.value);
       break;
+
+    case 'part': {
+      // chunked delivery: a part is ready — user downloads it, confirms, next part starts
+      if (p !== 'dl') break;
+      const box = document.getElementById('dl-part');
+      const title = document.getElementById('dl-part-title');
+      const dlLink = document.getElementById('dl-part-download');
+      const cont = document.getElementById('dl-part-continue');
+      box.hidden = false;
+      title.textContent = `Part ${data.index} of ${data.total} ready — ${data.name}`;
+      if (data.artifact?.download_url) dlLink.href = data.artifact.download_url;
+      cont.hidden = !!data.last; // last part: nothing to continue to
+      cont.disabled = false;
+      cont.textContent = '✓ Delete part & continue';
+      cont.onclick = async () => {
+        cont.disabled = true;
+        cont.textContent = 'Continuing…';
+        try {
+          await fetch(`/api/job/${activeJobIds.dl}/continue`, { method: 'POST' });
+          box.hidden = true;
+        } catch (_) {
+          cont.disabled = false;
+          cont.textContent = '✓ Delete part & continue';
+          showToast('Could not reach the server', 'error');
+        }
+      };
+      if (data.last) {
+        appendLog(log, 'All parts delivered — rejoin them on your device (see log above).');
+      }
+      break;
+    }
 
     case 'done':
       bar.style.width = '100%';
@@ -804,6 +836,21 @@ document.addEventListener('DOMContentLoaded', () => {
     streamProgress(extJob, 'dl');
   }
 });
+
+async function freeServerStorage(btn) {
+  btn.disabled = true;
+  btn.textContent = 'Freeing…';
+  try {
+    await fetch('/api/cleanup', { method: 'POST' });
+    showToast('Server storage freed', 'info');
+    clearCatalog();
+    catalogSeenUrls.clear();
+  } catch (_) {
+    showToast('Could not reach the server', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Free Server Storage';
+}
 
 async function loadCatalogHistory() {
   try {

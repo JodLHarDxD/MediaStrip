@@ -5,11 +5,18 @@ Direct file URLs (mp4/jpg/zip/anything with a Content-Length) are split into
 parallel HTTP Range segments downloaded concurrently, then reassembled.
 Falls back to a single-stream download when the server lacks Range support.
 
+Files larger than MS_PART_THRESHOLD_MB are delivered in sequential parts so
+a memory-budgeted host (Railway counts disk writes as memory) never holds
+more than one part: part N lands -> user downloads it -> user confirms ->
+part N is deleted and part N+1 starts.
+
 Progress events use the same queue protocol as downloader.py so the existing
 SSE pipeline and frontend work unchanged.
 """
 
 import asyncio
+import math
+import os
 import re
 import time
 from pathlib import Path
@@ -28,6 +35,10 @@ MAX_CONNECTIONS = 16
 STREAM_CHUNK = 64 * 1024
 SEGMENT_RETRIES = 3
 PROGRESS_INTERVAL = 0.3                # seconds between progress events
+
+# Chunked delivery: above the threshold, deliver in sequential parts
+PART_THRESHOLD = int(os.environ.get("MS_PART_THRESHOLD_MB", "300")) * 1024 * 1024
+PART_SIZE = int(os.environ.get("MS_PART_SIZE_MB", "200")) * 1024 * 1024
 
 
 class _Cancelled(Exception):
@@ -186,6 +197,101 @@ async def _assemble(parts: list[Path], final_path: Path):
     await asyncio.to_thread(_concat)
 
 
+async def _parallel_range_fetch(
+    client: httpx.AsyncClient,
+    url: str,
+    start: int,
+    end: int,
+    dest: Path,
+    queue: asyncio.Queue,
+    connections: int,
+):
+    """Fetch [start, end] into *dest* using parallel Range segments."""
+    span = end - start + 1
+    n = min(connections, max(1, span // MIN_SEGMENT_BYTES))
+    progress = _Progress(span, queue)
+    seg = span // n
+    parts: list[Path] = []
+    tasks = []
+    for i in range(n):
+        s = start + i * seg
+        e = end if i == n - 1 else start + (i + 1) * seg - 1
+        part = dest.parent / f".{dest.name}.seg{i:02d}"
+        part.unlink(missing_ok=True)
+        parts.append(part)
+        tasks.append(_fetch_segment(client, url, s, e, part, progress))
+    await asyncio.gather(*tasks)
+    await _assemble(parts, dest)
+
+
+async def _download_in_parts(
+    client: httpx.AsyncClient,
+    url: str,
+    size: int,
+    filename: str,
+    output_folder: Path,
+    queue: asyncio.Queue,
+    connections: int,
+):
+    """Sequential part delivery for files too big for the host's memory budget.
+
+    After each part the job pauses: the user downloads the part to their
+    device and confirms ('Delete & continue'), which deletes the part
+    server-side and resumes. Parts are exact byte slices — concatenating
+    them reproduces the original file.
+    """
+    total_parts = math.ceil(size / PART_SIZE)
+    await queue.put({
+        "type": "log",
+        "value": (
+            f"File is {size / (1024*1024):.0f} MB — exceeds the server's memory budget. "
+            f"Delivering in {total_parts} parts of ~{PART_SIZE // (1024*1024)} MB."
+        ),
+    })
+
+    wait_resume = getattr(queue, "wait_resume", None)
+
+    for idx in range(total_parts):
+        start = idx * PART_SIZE
+        end = min(size, (idx + 1) * PART_SIZE) - 1
+        part_name = f"{filename}.part{idx + 1:02d}"
+        part_path = output_folder / part_name
+
+        await queue.put({"type": "filename", "value": f"{part_name} ({idx + 1}/{total_parts})"})
+        await _parallel_range_fetch(client, url, start, end, part_path, queue, connections)
+
+        queue.pending_part = part_path  # what /continue deletes
+        await queue.put({
+            "type": "part",
+            "index": idx + 1,
+            "total": total_parts,
+            "name": part_name,
+            "path": str(part_path.resolve()),
+            "size": end - start + 1,
+            "last": idx + 1 == total_parts,
+        })
+
+        if idx + 1 < total_parts:
+            await queue.put({
+                "type": "log",
+                "value": f"Part {idx + 1}/{total_parts} ready — download it, then press 'Delete part & continue'.",
+            })
+            if wait_resume is None or not await wait_resume():
+                raise _Cancelled()
+
+    await queue.put({
+        "type": "log",
+        "value": 'All parts delivered. Rejoin on your device: cmd /c copy /b "name.part01"+"name.part02"+... "name"',
+    })
+    await queue.put({"type": "progress", "percent": 100.0, "speed": "", "eta": "00:00"})
+    last_part = output_folder / f"{filename}.part{total_parts:02d}"
+    await queue.put({
+        "type": "done",
+        "filename": f"{filename}.part{total_parts:02d}",
+        "files": [str(last_part.resolve())],
+    })
+
+
 async def download_direct(
     url: str,
     output_folder: Path,
@@ -216,6 +322,10 @@ async def download_direct(
             filename = _filename_from_headers(final_url, probe_headers, filename_hint)
             final_path = output_folder / filename
             await queue.put({"type": "filename", "value": filename})
+
+            if ranges_ok and size > PART_THRESHOLD:
+                await _download_in_parts(client, final_url, size, filename, output_folder, queue, connections)
+                return
 
             if ranges_ok and size >= 2 * MIN_SEGMENT_BYTES and connections > 1:
                 n = min(connections, max(2, size // MIN_SEGMENT_BYTES))

@@ -378,6 +378,13 @@ body.app-ready .site-shell {
           <div>Progress: <span id="dl-pct">0%</span></div>
           <button class="cancel-btn" id="dl-cancel" type="button">✕ Cancel</button>
         </div>
+        <div class="part-box" id="dl-part" hidden>
+          <div class="part-title" id="dl-part-title"></div>
+          <div class="part-actions">
+            <a class="part-download" id="dl-part-download" target="_blank" rel="noopener">⬇ Download part</a>
+            <button class="part-continue" id="dl-part-continue" type="button">✓ Delete part &amp; continue</button>
+          </div>
+        </div>
         <div class="log-output" id="dl-log"></div>
       </div>
 
@@ -509,6 +516,7 @@ body.app-ready .site-shell {
         Browser delivery active
       </div>
       <button class="results-clear" id="results-clear" onclick="clearCatalog()" hidden>Clear Catalog</button>
+      <button class="results-clear" id="results-free" onclick="freeServerStorage(this)" title="Delete all finished files on the server — frees its memory budget">Free Server Storage</button>
     </div>
 
     <div class="results-empty" id="results-empty">

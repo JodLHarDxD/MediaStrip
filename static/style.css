@@ -1543,3 +1543,37 @@ body::after {
 }
 .cancel-btn:hover { background: rgba(255, 77, 106, 0.1); border-color: #FF4D6A; }
 .cancel-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ── chunked part delivery ──────────────────────────────────────────────── */
+.part-box {
+  margin-bottom: 0.875rem;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.06);
+}
+.part-title { font-size: 0.8125rem; color: var(--text-1, #F0F4F8); margin-bottom: 10px; }
+.part-actions { display: flex; gap: 10px; align-items: center; }
+.part-download {
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #00E5FF, #7B61FF);
+  color: #06090d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.part-download:hover { filter: brightness(1.08); }
+.part-continue {
+  padding: 6px 14px;
+  border: 1px solid #2A3540;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2, #7A8FA6);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.part-continue:hover { border-color: #00E5FF; color: #00E5FF; }
+.part-continue:disabled { opacity: 0.5; cursor: default; }

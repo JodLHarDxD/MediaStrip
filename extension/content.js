@@ -431,6 +431,9 @@
         status.textContent = pct.toFixed(0) + "%" + (ev.speed ? " · " + ev.speed : "") + (ev.eta ? " · ETA " + ev.eta : "");
       } else if (ev.type === "filename") {
         status.textContent = ev.value;
+      } else if (ev.type === "part") {
+        status.textContent = `Part ${ev.index}/${ev.total} ready — open MediaStrip to grab it`;
+        panel.querySelector(".__ms_vopen").classList.add("__ms_von");
       } else if (ev.type === "done") {
         fill.style.width = "100%";
         status.textContent = "Saved ✓";
