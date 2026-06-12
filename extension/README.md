@@ -1,9 +1,11 @@
 # MediaStrip Catcher — Browser Extension
 
-IDM-style integrated media catcher for Chrome / Edge / Brave. Goes *inside* the page:
-scans the DOM for media, sniffs the HLS/DASH streams the player loads (even inside
-iframes), lists everything in a floating panel, forwards your session cookies for
-login-gated streams, and sends downloads to MediaStrip — no URL pasting.
+IDM-style media catcher for Chrome / Edge / Brave. A **Download button appears on
+the video itself** (top-right corner of the player, on hover) — exactly like IDM.
+Click it → a small panel anchored to the video shows the actual downloadable
+source(s) → pick one → live progress bar right there in the page. Session cookies
+ride along for login-gated streams. No URL pasting, no screen-corner clutter,
+no junk thumbnails.
 
 ## Install (Developer Mode)
 
@@ -26,19 +28,19 @@ login-gated streams, and sends downloads to MediaStrip — no URL pasting.
 
 ## How it works
 
-Integrated, IDM-style — it goes *inside* the page, you never paste a URL:
-
 | Surface | What happens |
 |---------|--------------|
-| **Floating launcher** (bottom-right) | Appears whenever media is found on the page; the badge shows how many items |
-| **Panel** (click the launcher) | Lists everything found: page `<video>`/`<audio>`/`<img>`, `<source>` tags, og:video meta, **and** the HLS/DASH streams the player loaded (network-sniffed). One ⬇ per item |
-| Video uses blob:/MSE (YouTube etc.) | "Download whole page (auto-extract)" sends the page URL → server-side yt-dlp pulls the real stream |
-| Direct file (mp4/jpg/zip…) | Server downloads with **8 parallel Range connections** (IDM-style) |
-| HLS/DASH manifest | Caught at network level even inside iframes/obfuscated players; Referer + cookies auto-attached |
-| Toolbar popup | Same catch list + server URL setting + "Download media on this page" |
+| **⬇ Download pill on the video** | Pinned to the top-right corner of every real player (≥240×120 — preview thumbs and ad slivers are skipped). Appears on hover; ✕ hides it for that video |
+| **Source panel** (click the pill) | Anchored to the video. Shows what would actually be downloaded: the direct file, the sniffed HLS/DASH stream(s) the player loaded, or full-quality page extraction. Pick → Download |
+| **Live progress** | Progress bar + speed + ETA inside the panel (server's SSE stream relayed through the extension); "Saved ✓" when done, link to the file in MediaStrip |
+| YouTube | One option only: full video at best quality via the server extractor — no thumbnail junk, no partial chunks |
+| Embedded players (movie sites, iframes) | Content script runs in every frame — the button appears on iframe videos too; sniffed streams are matched in |
+| Direct file (mp4 …) | Server downloads with **8 parallel Range connections** (IDM-style) |
+| Toolbar popup | Backup catch list + server URL setting + "Download media on this page" |
 
 The page is re-scanned on DOM changes and on `play`, so lazily-loaded players
-and single-page-app navigation are picked up automatically.
+and single-page-app navigation are picked up automatically. Images are
+deliberately ignored — the catcher targets the actual media, not page chrome.
 
 ## Settings
 

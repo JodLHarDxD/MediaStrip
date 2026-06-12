@@ -20,8 +20,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
   for (const tab of tabs) {
     try {
-      await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+      await chrome.scripting.insertCSS({ target: { tabId: tab.id, allFrames: true }, files: ["content.css"] });
+      await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, files: ["content.js"] });
     } catch (_) {
       /* unscriptable tab (store, chrome://, discarded) — skip */
     }
@@ -39,7 +39,8 @@ function header(headers, name) {
 function classify(url, contentType) {
   if (MANIFEST_URL_RE.test(url) || /mpegurl|dash\+xml/i.test(contentType)) return "manifest";
   if (/^(video|audio)\//i.test(contentType) || MEDIA_URL_RE.test(url)) return "media";
-  if (/^image\//i.test(contentType) && /\.(jpg|jpeg|png|webp|gif)([?#]|$)/i.test(url)) return "image";
+  // images deliberately not caught — thumbnails/page chrome are junk, the user
+  // wants the actual media (IDM behavior)
   return null;
 }
 
@@ -176,6 +177,65 @@ async function pingServer() {
     return { ok: false, server };
   }
 }
+
+// Relay the server's SSE progress stream to the content script over a port —
+// content scripts are bound by page CORS, the service worker is not.
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "job-progress") return;
+  let aborter = null;
+
+  port.onMessage.addListener(async (msg) => {
+    if (msg.type !== "watch" || !msg.jobId) return;
+    aborter = new AbortController();
+    const server = await getServerUrl();
+    try {
+      const res = await fetch(`${server}/stream/${encodeURIComponent(msg.jobId)}`, {
+        signal: aborter.signal,
+      });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let sep;
+        while ((sep = buf.indexOf("\n\n")) !== -1) {
+          const chunk = buf.slice(0, sep);
+          buf = buf.slice(sep + 2);
+          const data = chunk.split("\n").find((l) => l.startsWith("data:"));
+          if (!data) continue;
+          let ev;
+          try {
+            ev = JSON.parse(data.slice(5));
+          } catch (_) {
+            continue;
+          }
+          if (["progress", "filename", "done", "error"].includes(ev.type)) {
+            try {
+              port.postMessage(ev);
+            } catch (_) {
+              aborter.abort();
+              return; // content script went away
+            }
+          }
+          if (ev.type === "done" || ev.type === "error") {
+            aborter.abort();
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      try {
+        port.postMessage({ type: "disconnected" });
+      } catch (_) {
+        /* port already closed */
+      }
+    }
+  });
+
+  port.onDisconnect.addListener(() => aborter?.abort());
+});
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "get-media") {
