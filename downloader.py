@@ -189,9 +189,12 @@ async def download_video(
         total_items = 1
         current_item = 1
         last_error = None
+        last_progress_step = -1  # 0.1% granularity
+        last_log_pct = -1  # whole-percent granularity
 
         def handle_line(line: str):
             nonlocal filename, total_items, current_item, last_error
+            nonlocal last_progress_step, last_log_pct
 
             if line.startswith("ERROR:"):
                 last_error = line
@@ -218,15 +221,23 @@ async def download_video(
             if progress_match:
                 file_pct = float(progress_match.group(1))
                 pct = ((current_item - 1) + (file_pct / 100.0)) / total_items * 100.0
-                speed = ""
-                eta = ""
-                speed_match = re.search(r"at\s+([\d.]+\s*\S+/s)", line)
-                if speed_match:
-                    speed = speed_match.group(1)
-                eta_match = re.search(r"ETA\s+([\d:]+)", line)
-                if eta_match:
-                    eta = eta_match.group(1)
-                queue.put_nowait({"type": "progress", "percent": pct, "speed": speed, "eta": eta})
+                # HLS fragment downloads print hundreds of near-identical lines;
+                # only forward meaningful steps (0.1% for the bar, 1% for the log)
+                step = int(pct * 10)
+                if step != last_progress_step:
+                    last_progress_step = step
+                    speed = ""
+                    eta = ""
+                    speed_match = re.search(r"at\s+([\d.]+\s*\S+/s)", line)
+                    if speed_match:
+                        speed = speed_match.group(1)
+                    eta_match = re.search(r"ETA\s+([\d:]+)", line)
+                    if eta_match:
+                        eta = eta_match.group(1)
+                    queue.put_nowait({"type": "progress", "percent": pct, "speed": speed, "eta": eta})
+                if int(pct) == last_log_pct:
+                    return
+                last_log_pct = int(pct)
 
             queue.put_nowait({"type": "log", "value": line})
 

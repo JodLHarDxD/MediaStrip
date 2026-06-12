@@ -148,7 +148,64 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 if _ANIME_ROUTER is not None:
     app.include_router(_ANIME_ROUTER, prefix="/anime")
 
-job_queues: dict[str, asyncio.Queue] = {}
+class JobChannel:
+    """Broadcast channel for one job's progress events.
+
+    Drop-in for the asyncio.Queue producers already use (put / put_nowait),
+    but every subscriber receives every event — a bare Queue splits events
+    randomly between concurrent /stream readers (extension panel + web UI
+    watching the same job), desyncing progress and starving one of them of
+    the final 'done'. Late subscribers get the full history replayed.
+    """
+
+    MAX_HISTORY = 800
+
+    def __init__(self):
+        self.history: list[dict] = []
+        self.subscribers: set[asyncio.Queue] = set()
+        self.finished_at: float | None = None
+
+    async def put(self, event: dict):
+        self.put_nowait(event)
+
+    def put_nowait(self, event: dict):
+        self.history.append(event)
+        if len(self.history) > self.MAX_HISTORY:
+            # drop the oldest log/progress noise; keep structural events
+            for i, ev in enumerate(self.history):
+                if ev.get("type") in ("log", "progress"):
+                    del self.history[i]
+                    break
+            else:
+                del self.history[0]
+        if event.get("type") in ("done", "error"):
+            self.finished_at = time.time()
+        for q in list(self.subscribers):
+            q.put_nowait(event)
+
+    def subscribe(self) -> asyncio.Queue:
+        q: asyncio.Queue = asyncio.Queue()
+        for ev in self.history:
+            q.put_nowait(ev)
+        self.subscribers.add(q)
+        return q
+
+    def unsubscribe(self, q: asyncio.Queue):
+        self.subscribers.discard(q)
+
+
+job_queues: dict[str, JobChannel] = {}
+JOB_CHANNEL_TTL = 3600  # keep finished jobs around for late viewers / reloads
+
+
+def _new_job_channel(job_id: str) -> JobChannel:
+    now = time.time()
+    for jid, ch in list(job_queues.items()):
+        if ch.finished_at and now - ch.finished_at > JOB_CHANNEL_TTL:
+            job_queues.pop(jid, None)
+    channel = JobChannel()
+    job_queues[job_id] = channel
+    return channel
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -361,7 +418,7 @@ def _serialize_artifacts(paths: list[str | Path]) -> list[dict]:
 async def start_download(request: Request, body: DownloadRequest, background_tasks: BackgroundTasks):
     _validate_download_url(body.url)
     job_id = str(uuid.uuid4())
-    job_queues[job_id] = asyncio.Queue()
+    _new_job_channel(job_id)
     output_folder = DOWNLOADS_DIR / job_id
     output_folder.mkdir(parents=True, exist_ok=True)
     background_tasks.add_task(download_video, body.url, output_folder, job_queues[job_id])
@@ -424,7 +481,7 @@ async def extension_download(
     kind = _classify_extension_url(body.url, body.kind)
 
     job_id = str(uuid.uuid4())
-    job_queues[job_id] = asyncio.Queue()
+    _new_job_channel(job_id)
     output_folder = DOWNLOADS_DIR / job_id
     output_folder.mkdir(parents=True, exist_ok=True)
 
@@ -473,7 +530,7 @@ async def start_watermark_removal(
         raise HTTPException(413, f"File too large — maximum is {MAX_UPLOAD_BYTES // (1024*1024)} MB")
 
     job_id = str(uuid.uuid4())
-    job_queues[job_id] = asyncio.Queue()
+    _new_job_channel(job_id)
 
     safe_name = _safe_filename(file.filename or "upload")
     upload_path = UPLOADS_DIR / f"{job_id}_{safe_name}"
@@ -504,21 +561,24 @@ async def stream_progress(job_id: str):
     if job_id not in job_queues:
         raise HTTPException(404, "Job not found")
 
-    queue = job_queues[job_id]
+    channel = job_queues[job_id]
+    queue = channel.subscribe()
 
     async def event_generator() -> AsyncGenerator[str, None]:
-        while True:
-            try:
-                data = await asyncio.wait_for(queue.get(), timeout=30.0)
-                if data.get("type") == "done":
-                    done_files = data.get("files") or ([data["filename"]] if data.get("filename") else [])
-                    data = {**data, "artifacts": _serialize_artifacts(done_files)}
-                yield f"data: {json.dumps(data)}\n\n"
-                if data.get("type") in ("done", "error"):
-                    job_queues.pop(job_id, None)
-                    break
-            except asyncio.TimeoutError:
-                yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+        try:
+            while True:
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    if data.get("type") == "done":
+                        done_files = data.get("files") or ([data["filename"]] if data.get("filename") else [])
+                        data = {**data, "artifacts": _serialize_artifacts(done_files)}
+                    yield f"data: {json.dumps(data)}\n\n"
+                    if data.get("type") in ("done", "error"):
+                        break
+                except asyncio.TimeoutError:
+                    yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+        finally:
+            channel.unsubscribe(queue)  # channel itself expires via TTL
 
     return StreamingResponse(
         event_generator(),
