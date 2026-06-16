@@ -233,7 +233,7 @@ body::after {
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.1em; /* tighter space between words */
+  gap: 0.2em; /* space between words */
 }
 .hero-word {
   display: flex;
@@ -257,10 +257,6 @@ body::after {
   height: 1.1em; /* clip the spinning column */
   position: relative;
   vertical-align: bottom;
-  margin-right: -0.06em; /* Pull letters together so they touch */
-}
-.hero-char-slot:last-child {
-  margin-right: 0;
 }
 .hero-char-column {
   display: flex;
