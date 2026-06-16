@@ -57,8 +57,8 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://fonts.cdnfonts.com/css/clash-display" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Archivo+Black&family=Cinzel+Decorative:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
 <link rel="icon" href="/favicon.ico" type="image/svg+xml">
 <link rel="shortcut icon" href="/favicon.ico" type="image/svg+xml">
 <style>
@@ -93,108 +93,17 @@ body.app-ready .site-shell {
 </style>
 <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="is-preloading">
-
-<div class="site-loader" id="site-loader" aria-live="polite" aria-label="Loading MediaStrip">
-  <div class="site-loader__backdrop" aria-hidden="true"></div>
-  <div class="site-loader__noise" aria-hidden="true"></div>
-  <div class="site-loader__particles" aria-hidden="true">
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-    <span class="site-loader__particle"></span>
-  </div>
-
-  <div class="site-loader__center">
-    <div class="site-loader__mark" aria-hidden="true">
-      <svg class="site-loader__svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="presentation">
-        <defs>
-          <radialGradient id="loader-halo" cx="50%" cy="58%" r="55%">
-            <stop offset="0%" stop-color="#d4b8ff" stop-opacity="0.72"/>
-            <stop offset="55%" stop-color="#7a5cc7" stop-opacity="0.26"/>
-            <stop offset="100%" stop-color="#1a0d2e" stop-opacity="0"/>
-          </radialGradient>
-          <radialGradient id="loader-core" cx="50%" cy="55%" r="35%">
-            <stop offset="0%" stop-color="#fff8e7" stop-opacity="1"/>
-            <stop offset="35%" stop-color="#ffd4a8" stop-opacity="0.95"/>
-            <stop offset="70%" stop-color="#c084fc" stop-opacity="0.38"/>
-            <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-          </radialGradient>
-          <radialGradient id="loader-petal" cx="50%" cy="45%" r="60%">
-            <stop offset="0%" stop-color="#fff1ff" stop-opacity="0.98"/>
-            <stop offset="55%" stop-color="#c7a3f0" stop-opacity="0.68"/>
-            <stop offset="100%" stop-color="#3d2b5f" stop-opacity="0"/>
-          </radialGradient>
-          <radialGradient id="loader-petal-top" cx="50%" cy="40%" r="65%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-            <stop offset="50%" stop-color="#e9d5ff" stop-opacity="0.84"/>
-            <stop offset="100%" stop-color="#7a5cc7" stop-opacity="0"/>
-          </radialGradient>
-          <filter id="loader-soft" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="0.7"/>
-          </filter>
-        </defs>
-
-        <circle class="site-loader__halo" cx="100" cy="112" r="95" fill="url(#loader-halo)"/>
-
-        <g filter="url(#loader-soft)">
-          <g class="site-loader__petal-wrap site-loader__petal-wrap--a">
-            <ellipse cx="50" cy="110" rx="18" ry="64" transform="rotate(-6 50 110)" fill="url(#loader-petal)"/>
-          </g>
-          <g class="site-loader__petal-wrap site-loader__petal-wrap--a">
-            <ellipse cx="150" cy="110" rx="18" ry="64" transform="rotate(6 150 110)" fill="url(#loader-petal)"/>
-          </g>
-          <g class="site-loader__petal-wrap site-loader__petal-wrap--b">
-            <ellipse cx="80" cy="120" rx="14" ry="50" transform="rotate(22 80 120)" fill="url(#loader-petal)" opacity="0.92"/>
-          </g>
-          <g class="site-loader__petal-wrap site-loader__petal-wrap--b">
-            <ellipse cx="120" cy="120" rx="14" ry="50" transform="rotate(-22 120 120)" fill="url(#loader-petal)" opacity="0.92"/>
-          </g>
-          <g class="site-loader__petal-wrap site-loader__petal-wrap--c">
-            <ellipse cx="100" cy="70" rx="26" ry="20" fill="url(#loader-petal-top)"/>
-          </g>
-        </g>
-
-        <g class="site-loader__spark">
-          <line x1="100" y1="112" x2="100" y2="83"/>
-          <line x1="100" y1="112" x2="124" y2="98"/>
-          <line x1="100" y1="112" x2="124" y2="126"/>
-          <line x1="100" y1="112" x2="100" y2="141"/>
-          <line x1="100" y1="112" x2="76" y2="126"/>
-          <line x1="100" y1="112" x2="76" y2="98"/>
-        </g>
-
-        <circle class="site-loader__core-shell" cx="100" cy="112" r="42" fill="url(#loader-core)"/>
-        <circle class="site-loader__core-dot" cx="100" cy="112" r="3.5" fill="#fffdf2"/>
-      </svg>
-    </div>
-
-    <div class="site-loader__wordmark">Media<span>Strip</span></div>
-    <div class="site-loader__tag">download · clean · keep</div>
-  </div>
-
-  <div class="site-loader__meta">mediastrip · bloom-in v1</div>
-  <div class="site-loader__dots" aria-hidden="true">· · ·</div>
-</div>
-
-<noscript>
-  <style>
-  body { overflow: auto !important; }
-  .site-loader { display: none !important; }
-  .site-shell { opacity: 1 !important; visibility: visible !important; transform: none !important; }
-  </style>
-</noscript>
+<body>
 
 <div class="site-shell">
 
+<!-- Fluid GSAP Cursor -->
+<div class="fluid-cursor" id="fluid-cursor"></div>
+<div class="fluid-cursor-follower" id="fluid-cursor-follower"></div>
+
+<!-- Animated gradient canvas background -->
+
+<canvas id="gradient-canvas" aria-hidden="true"></canvas>
 <div class="mesh-bg"></div>
 
 <!-- ═══════════════════════════════════════════ TOP NAV -->
@@ -204,15 +113,15 @@ body.app-ready .site-shell {
       Media<span>Strip</span>
     </a>
     <ul class="top-nav-links">
+      <li><a href="#how-it-works" onclick="scrollToSection('how-it-works', event)">How It Works</a></li>
       <li><a href="#tool-download" onclick="scrollToSection('tool-download', event)">Download</a></li>
       <li><a href="#tool-watermark" onclick="scrollToSection('tool-watermark', event)">Watermark</a></li>
-      <li><a href="#result-catalog" onclick="scrollToSection('result-catalog', event)">Results</a></li>
-      <li><a href="#features" onclick="scrollToSection('features', event)">Features</a></li>
-      <li><a href="#manifesto" onclick="scrollToSection('manifesto', event)">About</a></li>
-      <li><a href="/blog/gpu-watermark-removal">Blog</a></li>
+      <li><a href="#showcase" onclick="scrollToSection('showcase', event)">Showcase</a></li>
+      <li><a href="#tech-stack" onclick="scrollToSection('tech-stack', event)">Stack</a></li>
+      <li><a href="#blog" onclick="scrollToSection('blog', event)">Blog</a></li>
     </ul>
     <div class="top-nav-socials">
-      <a href="https://github.com" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+      <a href="https://github.com/JodLHarDxD/MediaStrip" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
         <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.02c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.8 1.18 1.82 1.18 3.08 0 4.43-2.69 5.4-5.25 5.69.41.36.77 1.06.77 2.14v3.17c0 .31.21.67.8.55A10.53 10.53 0 0 0 23.5 12.02C23.5 5.74 18.27.5 12 .5z"/></svg>
       </a>
       <a href="https://linkedin.com" target="_blank" rel="noopener" title="LinkedIn" aria-label="LinkedIn">
@@ -229,10 +138,8 @@ body.app-ready .site-shell {
 </nav>
 
 <!-- ═══════════════════════════════════════════ HERO -->
-<section id="hero">
-  <video id="hero-video" autoplay muted loop playsinline preload="auto">
-    <source src="/static/assets/atlas.mp4" type="video/mp4">
-  </video>
+<section id="hero" data-section-theme="hero">
+  <div class="hero-gradient-bg" aria-hidden="true"></div>
   <div class="hero-overlay"></div>
 
   <!-- Cinematic coordinate frame -->
@@ -247,7 +154,7 @@ body.app-ready .site-shell {
     </div>
     <div class="hero-marker bottom-left">
       <span class="marker-dot"></span>
-      <span>SRC · ATLAS.MP4</span>
+      <span>SRC · GRADIENT.MESH</span>
     </div>
     <div class="hero-marker bottom-right">
       <span>LIVE</span>
@@ -256,30 +163,22 @@ body.app-ready .site-shell {
   </div>
 
   <div class="hero-content">
-    <div class="hero-eyebrow">
+    <div class="hero-eyebrow" id="hero-eyebrow">
       <span class="hero-eyebrow-dot"></span>
       GPU-ACCELERATED · LOCAL-FIRST
     </div>
-    <h1 class="hero-title">MediaStrip</h1>
-    <p class="hero-tagline">Download · Clean · Keep</p>
-    <div class="hero-actions">
-      <button class="btn-hero btn-hero-primary" onclick="scrollToSection('tool-download')">
+    <div class="hero-title-wrapper"><h1 class="hero-title" id="hero-title" data-slot-text="MEDIA STRIP"></h1></div>
+    <p class="hero-tagline" id="hero-tagline">
+      <span class="word">Download</span> <span class="word">·</span> <span class="word">Clean</span> <span class="word">·</span> <span class="word">Keep</span>
+    </p>
+    <div class="hero-actions" id="hero-actions">
+      <button class="btn-hero btn-hero-primary" data-magnetic onclick="scrollToSection('tool-download')">
         Start Downloading
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
       </button>
-      <button class="btn-hero btn-hero-secondary" onclick="scrollToSection('tool-watermark')">Remove Watermark</button>
+      <button class="btn-hero btn-hero-secondary" data-magnetic onclick="scrollToSection('tool-watermark')">Remove Watermark</button>
     </div>
   </div>
-
-  <button id="sound-toggle" onclick="toggleSound()" title="Toggle sound" aria-label="Toggle sound">
-    <span class="sound-ring"></span>
-    <svg id="icon-muted" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
-    </svg>
-    <svg id="icon-unmuted" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-    </svg>
-  </button>
 
   <button class="hero-scroll-hint" onclick="scrollToSection('manifesto')" aria-label="Scroll to content">
     <span>SCROLL</span>
@@ -293,12 +192,12 @@ body.app-ready .site-shell {
 </div>
 
 <!-- ═══════════════════════════════════════════ MANIFESTO -->
-<section class="section manifesto" id="manifesto">
+<section class="section manifesto" id="manifesto" data-section-theme="manifesto">
   <div class="manifesto-left reveal">
     <div class="eyebrow">— ABOUT</div>
     <h2 class="manifesto-title">
       Move media.<br>
-      <span class="gradient-text">Remove friction.</span>
+      <em class="gradient-text">Remove friction.</em>
     </h2>
   </div>
   <div class="manifesto-right reveal">
@@ -316,8 +215,101 @@ body.app-ready .site-shell {
   </div>
 </section>
 
+<!-- ═══════════════════════════════════════════ HOW IT WORKS -->
+<section class="section how-section" id="how-it-works" data-section-theme="how">
+  <div class="section-header reveal">
+    <div class="eyebrow">— HOW IT WORKS</div>
+    <h2 class="section-heading">From URL to file.<br><em class="gradient-text">In seconds.</em></h2>
+  </div>
+
+  <div class="how-flow-tabs reveal">
+    <button class="how-tab active" data-flow="download" onclick="switchFlow('download')">Download Flow</button>
+    <button class="how-tab" data-flow="watermark" onclick="switchFlow('watermark')">Watermark Flow</button>
+  </div>
+
+  <div class="how-steps-wrap" id="how-steps">
+    <!-- Download Flow -->
+    <div class="how-flow active" id="flow-download">
+      <div class="how-step" data-step="1">
+        <div class="how-step-num">01</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <h3 class="how-step-title">Paste URL</h3>
+        <p class="how-step-desc">Drop any link — YouTube, TikTok, Instagram, Twitter, or 1000+ other sources.</p>
+      </div>
+      <div class="how-step-connector"><div class="how-connector-line"></div></div>
+      <div class="how-step" data-step="2">
+        <div class="how-step-num">02</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3 class="how-step-title">yt-dlp Resolves</h3>
+        <p class="how-step-desc">Our engine analyzes the page, finds the highest-quality stream, and prepares the pipeline.</p>
+      </div>
+      <div class="how-step-connector"><div class="how-connector-line"></div></div>
+      <div class="how-step" data-step="3">
+        <div class="how-step-num">03</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3 class="how-step-title">Stream Copy</h3>
+        <p class="how-step-desc">ffmpeg stream-copies the original bitstream. Zero re-encoding — no quality loss, ever.</p>
+      </div>
+      <div class="how-step-connector"><div class="how-connector-line"></div></div>
+      <div class="how-step" data-step="4">
+        <div class="how-step-num">04</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <h3 class="how-step-title">Delivered</h3>
+        <p class="how-step-desc">File lands in your browser catalog. Preview, download, or keep working — it's yours.</p>
+      </div>
+    </div>
+
+    <!-- Watermark Flow -->
+    <div class="how-flow" id="flow-watermark">
+      <div class="how-step" data-step="1">
+        <div class="how-step-num">01</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h3 class="how-step-title">Upload File</h3>
+        <p class="how-step-desc">Drop your video or image. Supports MP4, MOV, AVI, MKV, WEBM, JPG, PNG, WEBP, and TIFF.</p>
+      </div>
+      <div class="how-step-connector"><div class="how-connector-line"></div></div>
+      <div class="how-step" data-step="2">
+        <div class="how-step-num">02</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <h3 class="how-step-title">Temporal Analysis</h3>
+        <p class="how-step-desc">OpenCV samples frames, measures variance across time to detect the watermark region automatically.</p>
+      </div>
+      <div class="how-step-connector"><div class="how-connector-line"></div></div>
+      <div class="how-step" data-step="3">
+        <div class="how-step-num">03</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.39 7.36H22l-6.19 4.5 2.39 7.36L12 16.72l-6.19 4.5 2.39-7.36L2 9.36h7.61z"/></svg>
+        </div>
+        <h3 class="how-step-title">LaMa Inpainting</h3>
+        <p class="how-step-desc">GPU-accelerated diffusion model rebuilds the missing pixels — pixel-perfect, frame by frame.</p>
+      </div>
+      <div class="how-step-connector"><div class="how-connector-line"></div></div>
+      <div class="how-step" data-step="4">
+        <div class="how-step-num">04</div>
+        <div class="how-step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <h3 class="how-step-title">Clean Output</h3>
+        <p class="how-step-desc">Watermark-free result with audio preserved, ready to download from the output catalog.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════════════════════════════════════ TOOL: DOWNLOAD -->
-<section class="section tool-section" id="tool-download">
+<section class="section tool-section" id="tool-download" data-section-theme="download">
   <div class="tool-copy reveal">
     <div class="eyebrow"><span class="eyebrow-num">01 /</span> DOWNLOAD</div>
     <h2 class="tool-heading">Download<br>anything.</h2>
@@ -342,7 +334,7 @@ body.app-ready .site-shell {
           placeholder="Paste URL here..."
           autocomplete="off" spellcheck="false"
         >
-        <button class="paste-btn" onclick="pasteUrl()">Paste</button>
+        <button class="paste-btn" data-magnetic onclick="pasteUrl()">Paste</button>
       </div>
 
       <div class="config-row">
@@ -351,7 +343,7 @@ body.app-ready .site-shell {
         </svg>
         <span class="config-row-label">Delivery</span>
         <span class="config-row-value" id="output-folder-display">Browser catalog + direct download</span>
-        <button class="config-row-btn" onclick="scrollToCatalog()">View</button>
+        <button class="config-row-btn" data-magnetic onclick="scrollToCatalog()">View</button>
       </div>
 
       <div class="quality-row">
@@ -359,7 +351,7 @@ body.app-ready .site-shell {
         <span class="quality-badge"><span class="quality-dot"></span>4K / Best Available</span>
       </div>
 
-      <button class="btn-primary" id="download-btn" onclick="startDownload()">
+      <button class="btn-primary" id="download-btn" data-magnetic onclick="startDownload()">
         <span>Download</span>
         <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="5" y1="12" x2="19" y2="12"/>
@@ -394,14 +386,14 @@ body.app-ready .site-shell {
           <div class="success-title">Delivered to Catalog</div>
           <div class="success-detail" id="dl-success-file"></div>
         </div>
-        <button class="btn-open-folder" onclick="scrollToCatalog()">View Catalog</button>
+        <button class="btn-open-folder" data-magnetic onclick="scrollToCatalog()">View Catalog</button>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ═══════════════════════════════════════════ TOOL: WATERMARK -->
-<section class="section tool-section tool-section-flipped" id="tool-watermark">
+<section class="section tool-section tool-section-flipped" id="tool-watermark" data-section-theme="watermark">
   <div class="tool-copy reveal">
     <div class="eyebrow"><span class="eyebrow-num">02 /</span> WATERMARK</div>
     <h2 class="tool-heading">Remove<br>watermarks.</h2>
@@ -471,7 +463,7 @@ body.app-ready .site-shell {
         </div>
       </div>
 
-      <button class="btn-primary" id="wm-btn" onclick="startWatermarkRemoval()">
+      <button class="btn-primary" id="wm-btn" data-magnetic onclick="startWatermarkRemoval()">
         <span>Process File</span>
         <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="5" y1="12" x2="19" y2="12"/>
@@ -493,14 +485,91 @@ body.app-ready .site-shell {
           <div class="success-title">Delivered to Catalog</div>
           <div class="success-detail" id="wm-success-file"></div>
         </div>
-        <button class="btn-open-folder" onclick="scrollToCatalog()">View Catalog</button>
+        <button class="btn-open-folder" data-magnetic onclick="scrollToCatalog()">View Catalog</button>
       </div>
     </div>
   </div>
 </section>
 
+<!-- ═══════════════════════════════════════════ MEDIA SHOWCASE -->
+<section class="section showcase-section" id="showcase" data-section-theme="showcase">
+  <div class="showcase-sticky">
+    <div class="section-header reveal" style="position: absolute; top: 15%; left: 0; right: 0; text-align: center; z-index: 10;">
+      <div class="eyebrow">— SHOWCASE</div>
+      <h2 class="section-heading">See it in action.<br><em class="gradient-text">Real output. Real quality.</em></h2>
+    </div>
+
+    <div class="showcase-scene">
+      <div class="showcase-ring" id="showcase-ring">
+        <div class="showcase-card reveal">
+          <video muted loop playsinline preload="metadata" poster="">
+            <source src="/static/assets/atlas.mp4" type="video/mp4">
+          </video>
+          <div class="showcase-card-overlay">
+            <span class="showcase-chip">4K · STREAM COPY</span>
+            <h3>Atlas Cinematic</h3>
+            <p>Native resolution download — zero re-encoding</p>
+          </div>
+        </div>
+        <div class="showcase-card reveal">
+          <video muted loop playsinline preload="metadata">
+            <source src="/static/assets/skiper6.mp4" type="video/mp4">
+          </video>
+          <div class="showcase-card-overlay">
+            <span class="showcase-chip">UI · INTERACTION</span>
+            <h3>Hover Members</h3>
+            <p>Dynamic component showcase</p>
+          </div>
+        </div>
+        <div class="showcase-card reveal">
+          <video muted loop playsinline preload="metadata">
+            <source src="/static/assets/skiper2.mp4" type="video/mp4">
+          </video>
+          <div class="showcase-card-overlay">
+            <span class="showcase-chip">UI · ANIMATION</span>
+            <h3>Dynamic Island</h3>
+            <p>Fluid motion design</p>
+          </div>
+        </div>
+        <div class="showcase-card reveal">
+          <video muted loop playsinline preload="metadata">
+            <source src="/static/assets/skiper56.mp4" type="video/mp4">
+          </video>
+          <div class="showcase-card-overlay">
+            <span class="showcase-chip">UI · MOTION</span>
+            <h3>Devouring Details</h3>
+            <p>Immersive sign-in experience</p>
+          </div>
+        </div>
+        <!-- Duplicate cards to fill out the 3D globe circle -->
+        <div class="showcase-card reveal">
+          <video muted loop playsinline preload="metadata" poster="">
+            <source src="/static/assets/atlas.mp4" type="video/mp4">
+          </video>
+          <div class="showcase-card-overlay">
+            <span class="showcase-chip">4K · STREAM COPY</span>
+            <h3>Atlas Cinematic (Clone)</h3>
+            <p>Native resolution download</p>
+          </div>
+        </div>
+        <div class="showcase-card reveal">
+          <video muted loop playsinline preload="metadata">
+            <source src="/static/assets/skiper2.mp4" type="video/mp4">
+          </video>
+          <div class="showcase-card-overlay">
+            <span class="showcase-chip">UI · ANIMATION</span>
+            <h3>Dynamic Island (Clone)</h3>
+            <p>Fluid motion design</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
 <!-- ═══════════════════════════════════════════ OUTPUT CATALOG -->
-<section class="section results-section" id="result-catalog">
+<section class="section results-section" id="result-catalog" data-section-theme="catalog">
   <div class="section-header reveal">
     <div class="eyebrow">— OUTPUT CATALOG</div>
     <h2 class="section-heading">Ready to collect.<br>Delivered in browser.</h2>
@@ -530,8 +599,76 @@ body.app-ready .site-shell {
   </div>
 </section>
 
+<!-- ═══════════════════════════════════════════ PIPELINE ARCHITECTURE -->
+<section class="section pipeline-section" id="pipeline" data-section-theme="pipeline">
+  <div class="pipeline-grid">
+    <div class="pipeline-visual reveal">
+      <div class="pipeline-track">
+        <div class="pipeline-node" data-node="input">
+          <div class="pipeline-node-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </div>
+          <span class="pipeline-node-label">Input</span>
+          <span class="pipeline-node-tech">URL / File</span>
+        </div>
+        <div class="pipeline-edge"><div class="pipeline-edge-line"></div><div class="pipeline-edge-dot"></div></div>
+        <div class="pipeline-node" data-node="resolve">
+          <div class="pipeline-node-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <span class="pipeline-node-label">Resolve</span>
+          <span class="pipeline-node-tech">yt-dlp</span>
+        </div>
+        <div class="pipeline-edge"><div class="pipeline-edge-line"></div><div class="pipeline-edge-dot"></div></div>
+        <div class="pipeline-node" data-node="process">
+          <div class="pipeline-node-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <span class="pipeline-node-label">Process</span>
+          <span class="pipeline-node-tech">ffmpeg / OpenCV</span>
+        </div>
+        <div class="pipeline-edge"><div class="pipeline-edge-line"></div><div class="pipeline-edge-dot"></div></div>
+        <div class="pipeline-node" data-node="enhance">
+          <div class="pipeline-node-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.39 7.36H22l-6.19 4.5 2.39 7.36L12 16.72l-6.19 4.5 2.39-7.36L2 9.36h7.61z"/></svg>
+          </div>
+          <span class="pipeline-node-label">Enhance</span>
+          <span class="pipeline-node-tech">LaMa · CUDA</span>
+        </div>
+        <div class="pipeline-edge"><div class="pipeline-edge-line"></div><div class="pipeline-edge-dot"></div></div>
+        <div class="pipeline-node" data-node="output">
+          <div class="pipeline-node-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <span class="pipeline-node-label">Output</span>
+          <span class="pipeline-node-tech">4K Lossless</span>
+        </div>
+      </div>
+    </div>
+    <div class="pipeline-copy reveal">
+      <div class="eyebrow">— ARCHITECTURE</div>
+      <h2 class="section-heading">Under the hood.<br><em class="gradient-text">Built for throughput.</em></h2>
+      <p class="pipeline-body">Every component in the pipeline is chosen for zero-copy performance. Downloads preserve the original bitstream. Watermark removal inpaints only affected regions — untouched pixels stay untouched.</p>
+      <div class="pipeline-stats">
+        <div class="pipeline-stat">
+          <span class="pipeline-stat-num">0ms</span>
+          <span class="pipeline-stat-label">Re-encoding overhead</span>
+        </div>
+        <div class="pipeline-stat">
+          <span class="pipeline-stat-num">5×</span>
+          <span class="pipeline-stat-label">Faster than cloud</span>
+        </div>
+        <div class="pipeline-stat">
+          <span class="pipeline-stat-num">100%</span>
+          <span class="pipeline-stat-label">Local compute</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══════════════════════════════════════════ FEATURES -->
-<section class="section features-section" id="features">
+<section class="section features-section" id="features" data-section-theme="features">
   <div class="section-header reveal">
     <div class="eyebrow">— WHY MEDIASTRIP</div>
     <h2 class="section-heading">Built for speed.<br>Designed for quality.</h2>
@@ -568,7 +705,7 @@ body.app-ready .site-shell {
 </section>
 
 <!-- ═══════════════════════════════════════════ STATS BAND -->
-<section class="stats-band" id="stats">
+<section class="stats-band" id="stats" data-section-theme="stats">
   <div class="stats-grid">
     <div class="stat reveal">
       <div class="stat-num" data-count="1000" data-suffix="+">0</div>
@@ -585,6 +722,105 @@ body.app-ready .site-shell {
     <div class="stat reveal">
       <div class="stat-num" data-count="100" data-suffix="%">0</div>
       <div class="stat-label">Local compute</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ TECH STACK -->
+<section class="section tech-section" id="tech-stack" data-section-theme="tech">
+  <div class="section-header reveal">
+    <div class="eyebrow">— TECH STACK</div>
+    <h2 class="section-heading">Powered by the best.<br><span class="gradient-text">Open-source backbone.</span></h2>
+  </div>
+
+  <div class="tech-grid">
+    <div class="tech-card reveal" data-accent="cyan">
+      <div class="tech-card-icon">⚡</div>
+      <h3 class="tech-card-name">FastAPI</h3>
+      <p class="tech-card-role">Backend Framework</p>
+      <p class="tech-card-desc">Async Python web framework with automatic OpenAPI docs, SSE streaming, and sub-millisecond routing. Handles concurrent downloads without blocking.</p>
+    </div>
+    <div class="tech-card reveal" data-accent="violet">
+      <div class="tech-card-icon">📥</div>
+      <h3 class="tech-card-name">yt-dlp</h3>
+      <p class="tech-card-role">Media Extraction</p>
+      <p class="tech-card-desc">Fork of youtube-dl with active maintenance. Supports 1000+ sites, live progress streaming, and adaptive format selection for best quality.</p>
+    </div>
+    <div class="tech-card reveal" data-accent="amber">
+      <div class="tech-card-icon">👁️</div>
+      <h3 class="tech-card-name">OpenCV</h3>
+      <p class="tech-card-role">Computer Vision</p>
+      <p class="tech-card-desc">Frame sampling, temporal variance analysis, and watermark region detection. TELEA inpainting as CPU fallback when GPU isn't available.</p>
+    </div>
+    <div class="tech-card reveal" data-accent="rose">
+      <div class="tech-card-icon">🧠</div>
+      <h3 class="tech-card-name">LaMa</h3>
+      <p class="tech-card-role">AI Inpainting</p>
+      <p class="tech-card-desc">Large Mask Inpainting — a state-of-the-art neural network that reconstructs missing image regions using Fourier convolutions and perceptual loss.</p>
+    </div>
+    <div class="tech-card reveal" data-accent="teal">
+      <div class="tech-card-icon">🎬</div>
+      <h3 class="tech-card-name">ffmpeg</h3>
+      <p class="tech-card-role">Media Processing</p>
+      <p class="tech-card-desc">Stream-copy downloads bypass re-encoding entirely. For watermark output, preserves audio track and muxes clean video with original sound.</p>
+    </div>
+    <div class="tech-card reveal" data-accent="green">
+      <div class="tech-card-icon">🔥</div>
+      <h3 class="tech-card-name">CUDA</h3>
+      <p class="tech-card-role">GPU Acceleration</p>
+      <p class="tech-card-desc">LaMa inpainting runs on NVIDIA GPUs via PyTorch + CUDA. 1080p video watermark removal completes in minutes instead of hours.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ BLOG -->
+<section class="section blog-section" id="blog" data-section-theme="blog">
+  <div class="section-header reveal">
+    <div class="eyebrow">— DEEP DIVES</div>
+    <h2 class="section-heading">Technical writing.<br><span class="gradient-text">From the source.</span></h2>
+  </div>
+
+  <div class="blog-grid">
+    <a href="/blog/gpu-watermark-removal" class="blog-card reveal">
+      <div class="blog-card-top">
+        <span class="blog-card-tag">GPU · CUDA · LaMa</span>
+        <span class="blog-card-time">6 min read</span>
+      </div>
+      <h3 class="blog-card-title">GPU Watermark Removal: Faster, Cleaner, Local-First</h3>
+      <p class="blog-card-excerpt">GPU watermark removal runs CUDA-powered LaMa inpainting on your own GPU — faster turnaround than cloud tools, no upload, and zero generational quality loss.</p>
+      <div class="blog-card-cta">
+        Read article
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </div>
+    </a>
+    <a href="/blog/diffusion-watermark-remover" class="blog-card reveal">
+      <div class="blog-card-top">
+        <span class="blog-card-tag">DIFFUSION · NEURAL · AI</span>
+        <span class="blog-card-time">6 min read</span>
+      </div>
+      <h3 class="blog-card-title">Diffusion Watermark Remover: Why It Beats Old Tools</h3>
+      <p class="blog-card-excerpt">A diffusion watermark remover generates plausible pixels instead of copying nearby ones. Here's why neural inpainting beats patch-based watermark removal.</p>
+      <div class="blog-card-cta">
+        Read article
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ CTA -->
+<section class="section cta-section" id="cta" data-section-theme="cta">
+  <div class="cta-glow" aria-hidden="true"></div>
+  <div class="cta-content reveal">
+    <div class="eyebrow">— GET STARTED</div>
+    <h2 class="cta-heading">Ready to <span class="gradient-text">strip</span>?</h2>
+    <p class="cta-body">No signup, no cloud upload, no quality loss. Paste a URL or drop a file — it's that simple.</p>
+    <div class="cta-actions">
+      <button class="btn-hero btn-hero-primary btn-cta" data-magnetic onclick="scrollToSection('tool-download')">
+        Start Downloading
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </button>
+      <button class="btn-hero btn-hero-secondary btn-cta" data-magnetic onclick="scrollToSection('tool-watermark')">Remove Watermark</button>
     </div>
   </div>
 </section>
@@ -623,7 +859,7 @@ body.app-ready .site-shell {
     <div class="footer-col">
       <div class="footer-col-title">Connect</div>
       <div class="footer-socials">
-        <a href="https://github.com" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
+        <a href="https://github.com/JodLHarDxD/MediaStrip" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
           <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.02c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.8 1.18 1.82 1.18 3.08 0 4.43-2.69 5.4-5.25 5.69.41.36.77 1.06.77 2.14v3.17c0 .31.21.67.8.55A10.53 10.53 0 0 0 23.5 12.02C23.5 5.74 18.27.5 12 .5z"/></svg>
         </a>
         <a href="https://linkedin.com" target="_blank" rel="noopener" title="LinkedIn" aria-label="LinkedIn">
@@ -657,6 +893,11 @@ body.app-ready .site-shell {
 </button>
 
 </div>
+
+<!-- Animation Libraries (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
 
 <script src="/static/app.js"></script>
 </body>

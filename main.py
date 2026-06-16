@@ -71,7 +71,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
             "style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.cdnfonts.com https://fonts.gstatic.com; "
             "media-src 'self' blob:; "

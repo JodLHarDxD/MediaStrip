@@ -10,7 +10,13 @@ function scrollToSection(id, event) {
   if (event) event.preventDefault();
   const el = document.getElementById(id);
   if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  
+  if (window.lenis) {
+    window.lenis.scrollTo(el, { duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+  } else {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  
   // Close mobile nav if open
   document.getElementById('top-nav')?.classList.remove('mobile-open');
   document.getElementById('mobile-nav-toggle')?.classList.remove('open');
@@ -28,14 +34,6 @@ function toggleMobileNav() {
 
 function scrollToCatalog(event) {
   scrollToSection('result-catalog', event);
-}
-
-// ─── Sound Toggle ──────────────────────────────────────────────────────────
-function toggleSound() {
-  const video = document.getElementById('hero-video');
-  video.muted = !video.muted;
-  document.getElementById('icon-muted').style.display   = video.muted ? '' : 'none';
-  document.getElementById('icon-unmuted').style.display = video.muted ? 'none' : '';
 }
 
 // ─── Paste ──────────────────────────────────────────────────────────────────
@@ -787,34 +785,16 @@ function initFeatureCards() {
 
 // ─── Site Loader ──────────────────────────────────────────────────────────────
 function initLoader() {
-  const loader = document.getElementById('site-loader');
-  if (!loader) return;
-
-  function dismiss() {
-    loader.classList.add('is-leaving');
-    setTimeout(() => {
-      loader.hidden = true;
-      document.body.classList.remove('is-preloading');
-      document.body.classList.add('app-ready');
-    }, 900);
-  }
-
-  // Auto-dismiss after the animation plays (~5 s)
-  const timer = setTimeout(dismiss, 5000);
-
-  // Click anywhere on the loader after 1.5 s to skip
-  setTimeout(() => {
-    loader.addEventListener('click', () => { clearTimeout(timer); dismiss(); }, { once: true });
-  }, 1500);
+  // Preloader disabled
+  document.body.classList.remove('is-preloading');
+  document.body.classList.add('app-ready');
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initLoader();
+  initMotionEngine();
 
-  if (window.innerWidth <= 768) {
-    document.getElementById('hero-video')?.pause();
-  }
   document.getElementById('url-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') startDownload();
   });
@@ -868,3 +848,336 @@ async function loadCatalogHistory() {
     /* server unreachable — catalog stays empty */
   }
 }
+
+// ─── WebGL Fluid Background ──────────────────────────────────────────────────
+function initFluidBackground() {
+  const canvas = document.getElementById('gradient-canvas');
+  if (!canvas) return;
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+
+  const vsSource = `
+    attribute vec2 position;
+    void main() {
+      gl_Position = vec4(position, 0.0, 1.0);
+    }
+  `;
+
+  // Fluid noise shader (cyan/blue aurora style) + Mouse Ripples
+  const fsSource = `
+    precision mediump float;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform vec2 u_mouse;
+
+    vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+    vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+    float snoise(vec2 v) {
+      const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+      vec2 i  = floor(v + dot(v, C.yy) );
+      vec2 x0 = v -   i + dot(i, C.xx);
+      vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+      vec4 x12 = x0.xyxy + C.xxzz;
+      x12.xy -= i1;
+      i = mod289(i);
+      vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+      vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+      m = m*m;
+      m = m*m;
+      vec3 x = 2.0 * fract(p * C.www) - 1.0;
+      vec3 h = abs(x) - 0.5;
+      vec3 ox = floor(x + 0.5);
+      vec3 a0 = x - ox;
+      m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+      vec3 g;
+      g.x  = a0.x  * x0.x  + h.x  * x0.y;
+      g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+      return 130.0 * dot(m, g);
+    }
+
+    void main() {
+      vec2 st = gl_FragCoord.xy/u_resolution.xy;
+      st.x *= u_resolution.x/u_resolution.y;
+      
+      vec2 mouse = u_mouse / u_resolution.xy;
+      mouse.x *= u_resolution.x/u_resolution.y;
+      // invert Y for WebGL coords
+      mouse.y = (u_resolution.y - u_mouse.y) / u_resolution.y; 
+      
+      vec2 pos = vec2(st*1.5);
+      
+      // Mouse interaction (Fluid displacement)
+      float dist = distance(st, mouse);
+      float ripple = smoothstep(0.4, 0.0, dist);
+      pos += (st - mouse) * ripple * 0.5;
+
+      float df = snoise(pos - u_time * 0.05);
+      float noise = snoise(pos + df + u_time * 0.1);
+      
+      // Intense cyan/blue glowing colors
+      vec3 color = mix(vec3(0.0, 0.15, 0.5), vec3(0.0, 0.85, 1.0), smoothstep(-0.2, 0.8, noise));
+      color += mix(vec3(0.0), vec3(0.4, 0.0, 0.8), smoothstep(0.4, 0.9, snoise(pos - u_time * 0.1)));
+      
+      color += vec3(0.0, 0.7, 0.9) * max(0.0, noise*noise*noise*2.0);
+      color += vec3(0.0, 0.5, 0.8) * ripple * 1.5; // Brighten around mouse
+
+      float vignette = smoothstep(1.5, 0.0, length(st - vec2(0.5)));
+      color *= vignette;
+
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `;
+
+  function createShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, createShader(gl.VERTEX_SHADER, vsSource));
+  gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fsSource));
+  gl.linkProgram(program);
+  gl.useProgram(program);
+
+  const posBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  const posLoc = gl.getAttribLocation(program, 'position');
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+  const timeLoc = gl.getUniformLocation(program, 'u_time');
+  const resLoc = gl.getUniformLocation(program, 'u_resolution');
+  const mouseLoc = gl.getUniformLocation(program, 'u_mouse');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform2f(resLoc, canvas.width, canvas.height);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  let targetMouse = {x: window.innerWidth/2, y: window.innerHeight/2};
+  let currentMouse = {x: window.innerWidth/2, y: window.innerHeight/2};
+
+  window.addEventListener('mousemove', (e) => {
+    targetMouse.x = e.clientX;
+    targetMouse.y = e.clientY;
+  });
+
+  function render(time) {
+    gl.uniform1f(timeLoc, time * 0.001);
+    
+    // Smooth mouse follow for fluid
+    currentMouse.x += (targetMouse.x - currentMouse.x) * 0.05;
+    currentMouse.y += (targetMouse.y - currentMouse.y) * 0.05;
+    gl.uniform2f(mouseLoc, currentMouse.x, currentMouse.y);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+}
+
+// ─── Motion Engine (GSAP + Lenis + Fluid Physics) ─────────────────────────────
+function initMotionEngine() {
+  if (typeof Lenis === 'undefined' || typeof gsap === 'undefined') return;
+
+  initFluidBackground();
+
+  // 1. Lenis Smooth Scroll
+  const lenis = new Lenis({
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    direction: 'vertical',
+    gestureDirection: 'vertical',
+    smooth: true,
+  });
+  window.lenis = lenis;
+
+  function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  if (typeof ScrollTrigger !== 'undefined') {
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+    gsap.ticker.lagSmoothing(0);
+  }
+
+  // 2. Custom Fluid Cursor
+  const cursor = document.getElementById('fluid-cursor');
+  const follower = document.getElementById('fluid-cursor-follower');
+  if (cursor && follower) {
+    gsap.set(cursor, {xPercent: -50, yPercent: -50});
+    gsap.set(follower, {xPercent: -50, yPercent: -50});
+    
+    const xTo = gsap.quickTo(cursor, "x", {duration: 0.1, ease: "power3"});
+    const yTo = gsap.quickTo(cursor, "y", {duration: 0.1, ease: "power3"});
+    
+    const fXTo = gsap.quickTo(follower, "x", {duration: 0.4, ease: "power3.out"});
+    const fYTo = gsap.quickTo(follower, "y", {duration: 0.4, ease: "power3.out"});
+
+    window.addEventListener("mousemove", e => {
+      xTo(e.clientX);
+      yTo(e.clientY);
+      fXTo(e.clientX);
+      fYTo(e.clientY);
+    });
+
+    document.querySelectorAll('a, button, input, .showcase-card, .drop-zone').forEach(el => {
+      el.addEventListener('mouseenter', () => follower.classList.add('hovering'));
+      el.addEventListener('mouseleave', () => follower.classList.remove('hovering'));
+    });
+  }
+
+  // 4. Magnetic Buttons
+  const magneticEls = document.querySelectorAll('[data-magnetic]');
+  magneticEls.forEach((btn) => {
+    btn.addEventListener('mousemove', (e) => {
+      const rect = btn.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+
+      gsap.to(btn, {
+        x: x * 0.4,
+        y: y * 0.4,
+        duration: 0.4,
+        ease: 'power2.out',
+      });
+    });
+
+    btn.addEventListener('mouseleave', () => {
+      gsap.to(btn, { x: 0, y: 0, duration: 1.4, ease: 'power3.out' });
+    });
+  });
+
+  // 5. 3D Globe Showcase
+  const ring = document.getElementById('showcase-ring');
+  const cards = document.querySelectorAll('.showcase-card');
+  if (ring && cards.length > 0) {
+    const numCards = cards.length;
+    const radius = 600; // Radius of the 3D circle
+
+    // Distribute cards in a circle
+    cards.forEach((card, i) => {
+      const angle = (i * 360) / numCards;
+      gsap.set(card, {
+        rotationY: angle,
+        z: radius,
+        transformOrigin: "50% 50% " + -radius + "px"
+      });
+      
+      // Hover pops card forward aggressively
+      card.addEventListener('mouseenter', () => {
+        gsap.to(card, { z: radius + 150, scale: 1.05, duration: 0.6, ease: 'power3.out' });
+      });
+      card.addEventListener('mouseleave', () => {
+        gsap.to(card, { z: radius, scale: 1, duration: 0.6, ease: 'power3.out' });
+      });
+    });
+
+    // Spin the ring based on scroll inside .showcase-section
+    gsap.to(ring, {
+      rotationY: -360,
+      ease: "none",
+      scrollTrigger: {
+        trigger: ".showcase-section",
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.5
+      }
+    });
+  }
+
+  // 6. Slot Machine Hero Animation
+  const heroTitle = document.getElementById('hero-title');
+  if (heroTitle) {
+    const text = heroTitle.getAttribute('data-slot-text') || "MEDIA STRIP";
+    heroTitle.innerHTML = ''; // clear any existing content
+    
+    const words = text.split(' ');
+    const columnsToAnimate = [];
+    
+    const charsList = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*".split('');
+    
+    words.forEach(word => {
+      const wordDiv = document.createElement('div');
+      wordDiv.className = 'hero-word';
+      
+      word.split('').forEach(char => {
+        const slot = document.createElement('span');
+        slot.className = 'hero-char-slot';
+        
+        const column = document.createElement('div');
+        column.className = 'hero-char-column';
+        
+        // Number of random characters to spin through
+        const numRandomChars = Math.floor(Math.random() * 8) + 8; // 8 to 15 chars
+        
+        for (let i = 0; i < numRandomChars; i++) {
+          const randomChar = charsList[Math.floor(Math.random() * charsList.length)];
+          const charDiv = document.createElement('span');
+          charDiv.className = 'hero-char';
+          charDiv.innerText = randomChar;
+          column.appendChild(charDiv);
+        }
+        
+        // Final correct character
+        const finalCharDiv = document.createElement('span');
+        finalCharDiv.className = 'hero-char';
+        finalCharDiv.innerText = char;
+        column.appendChild(finalCharDiv);
+        
+        slot.appendChild(column);
+        wordDiv.appendChild(slot);
+        
+        columnsToAnimate.push({
+          el: column,
+          totalItems: numRandomChars + 1
+        });
+      });
+      
+      heroTitle.appendChild(wordDiv);
+    });
+
+    // Animate the columns
+    columnsToAnimate.forEach((colData, index) => {
+      // Calculate the exact percentage to scroll the last item into view
+      const targetYPercent = -100 * (colData.totalItems - 1) / colData.totalItems;
+      
+      gsap.fromTo(colData.el, 
+        { yPercent: 0 },
+        {
+          yPercent: targetYPercent,
+          duration: 1.8 + Math.random() * 0.8,
+          ease: "power4.inOut",
+          delay: 3.5 + (index * 0.05) // staggered after loader
+        }
+      );
+    });
+  }
+
+  gsap.to('.hero-eyebrow, .hero-tagline .word, .hero-actions, .hero-scroll-hint', {
+    y: 0,
+    opacity: 1,
+    scale: 1,
+    stagger: 0.15,
+    duration: 1.2,
+    ease: 'power3.out',
+    delay: 4.8
+  });
+
+  
+}
+

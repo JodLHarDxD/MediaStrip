@@ -3,8 +3,10 @@ __pycache__/
 downloads/
 output/
 uploads/
+media/
 *.egg-info/
 .env
 test_anime*/
 test_seg/
 test_ck/
+.playwright-mcp/
