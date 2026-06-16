@@ -182,10 +182,52 @@ def _ffmpeg_hls_args() -> str:
     return _FFMPEG_HLS_ARGS
 
 
+_MANIFEST_RE = re.compile(r"\.(m3u8|mpd)([?#]|$)")
+
+# curl_cffi powers yt-dlp's --impersonate. Without it we can't beat Cloudflare;
+# fall back to the (weaker) extractor-arg form so non-CF m3u8 still works.
+try:
+    import curl_cffi as _curl_cffi  # noqa: F401
+    _IMPERSONATE_OK = True
+except Exception:
+    _IMPERSONATE_OK = False
+
+# Cloudflare-fronted anime CDNs (mewstream) reject any client lacking a real
+# Chrome TLS fingerprint AND browser fetch-metadata headers. Proven empirically:
+# Referer-alone => 403, impersonate-alone => 403, ffmpeg-as-downloader => 403
+# (ffmpeg can't impersonate). The winning combo is impersonate + native HLS
+# downloader + these Sec-Fetch headers (+ Referer, added separately).
+_CF_FETCH_HEADERS = [
+    "--add-header", "Sec-Fetch-Dest:empty",
+    "--add-header", "Sec-Fetch-Mode:cors",
+    "--add-header", "Sec-Fetch-Site:cross-site",
+]
+
+
+def _is_manifest_url(url: str) -> bool:
+    return bool(_MANIFEST_RE.search(urlparse(url).path))
+
+
+def _hls_cloudflare_flags(url: str) -> list[str]:
+    """yt-dlp flags to pull a Cloudflare-protected HLS manifest + its segments.
+
+    Uses the native HLS downloader on purpose: the ffmpeg downloader makes its
+    own TLS requests and can't impersonate, so every segment 403s. Native fetches
+    fragments through curl_cffi's Chrome fingerprint and also ignores the disguised
+    .webp/.ico segment extensions that the ffmpeg demuxer chokes on.
+    """
+    if not _is_manifest_url(url):
+        return []
+    flags = ["--hls-prefer-native", *_CF_FETCH_HEADERS]
+    if _IMPERSONATE_OK:
+        flags = ["--impersonate", "chrome", *flags]
+    else:
+        flags = ["--extractor-args", "generic:impersonate", *flags]
+    return flags
+
+
 def _ytdlp_context_flags(url: str, referer: str | None, jar_path: Path | None) -> list[str]:
-    flags = []
-    if urlparse(url).path.endswith(".m3u8"):
-        flags.extend(["--extractor-args", "generic:impersonate"])
+    flags = list(_hls_cloudflare_flags(url))
     if referer:
         flags.extend(["--add-header", f"Referer:{referer}"])
     if jar_path:
@@ -353,6 +395,66 @@ async def _download_in_sections(
     })
 
 
+async def _deliver_local_file_in_parts(
+    src: Path, output_folder: Path, queue: asyncio.Queue, base_name: str,
+) -> None:
+    """Byte-slice an already-downloaded file into sequential parts.
+
+    Mirrors segmented._download_in_parts (same SSE 'part' protocol + wait_resume
+    gating) but slices a local file instead of HTTP Range requests — used for
+    Cloudflare HLS, which must be pulled whole by the native downloader and only
+    then chunked for a memory-budgeted host. The source is removed once shipped.
+    """
+    size = src.stat().st_size
+    total_parts = math.ceil(size / PART_SIZE)
+    await queue.put({"type": "log", "value": (
+        f"File is {size / (1024*1024):.0f} MB — exceeds the server's memory budget. "
+        f"Delivering in {total_parts} parts of ~{PART_SIZE // (1024*1024)} MB."
+    )})
+    wait_resume = getattr(queue, "wait_resume", None)
+
+    def _write_part(start: int, end: int, dest: Path):
+        with open(src, "rb") as fh, open(dest, "wb") as out:
+            fh.seek(start)
+            remaining = end - start
+            while remaining > 0:
+                chunk = fh.read(min(1024 * 1024, remaining))
+                if not chunk:
+                    break
+                out.write(chunk)
+                remaining -= len(chunk)
+
+    for idx in range(total_parts):
+        start = idx * PART_SIZE
+        end = min(size, (idx + 1) * PART_SIZE)
+        part_name = f"{base_name}.part{idx + 1:02d}"
+        part_path = output_folder / part_name
+        await queue.put({"type": "filename", "value": f"{part_name} ({idx + 1}/{total_parts})"})
+        await asyncio.to_thread(_write_part, start, end, part_path)
+
+        queue.pending_part = part_path  # what /continue deletes
+        await queue.put({
+            "type": "part", "index": idx + 1, "total": total_parts, "name": part_name,
+            "path": str(part_path.resolve()), "size": end - start, "last": idx + 1 == total_parts,
+        })
+        if idx + 1 < total_parts:
+            await queue.put({"type": "log", "value":
+                f"Part {idx + 1}/{total_parts} ready — download it, then press 'Delete part & continue'."})
+            if wait_resume is None or not await wait_resume():
+                src.unlink(missing_ok=True)
+                return
+
+    src.unlink(missing_ok=True)
+    await queue.put({"type": "log", "value":
+        'All parts delivered. Rejoin on your device: cmd /c copy /b "name.part01"+"name.part02"+... "name"'})
+    await queue.put({"type": "progress", "percent": 100.0, "speed": "", "eta": "00:00"})
+    last_part = output_folder / f"{base_name}.part{total_parts:02d}"
+    await queue.put({
+        "type": "done", "filename": f"{base_name}.part{total_parts:02d}",
+        "files": [str(last_part.resolve())],
+    })
+
+
 async def download_video(
     url: str,
     output_folder: Path,
@@ -411,9 +513,10 @@ async def download_video(
     if limit_one:
         cmd.extend(["--playlist-items", "1"])
 
-    # m3u8 streams (e.g. anime CDNs) are behind Cloudflare — requires browser impersonation
-    if parsed_url.path.endswith(".m3u8"):
-        cmd.extend(["--extractor-args", "generic:impersonate"])
+    # m3u8 streams (anime CDNs) sit behind Cloudflare — needs real Chrome
+    # impersonation + native HLS downloader + fetch-metadata headers
+    is_manifest = _is_manifest_url(url)
+    cmd.extend(_hls_cloudflare_flags(url))
 
     if referer:
         cmd.extend(["--add-header", f"Referer:{referer}"])
@@ -435,8 +538,11 @@ async def download_video(
 
     try:
         # Oversize check: files past the memory budget deliver as sequential
-        # playable time-sections instead of landing whole (see _download_in_sections)
-        if PART_THRESHOLD > 0 and not _is_fallback and not is_instagram_post:
+        # playable time-sections instead of landing whole (see _download_in_sections).
+        # Manifests are excluded — the section path drives ffmpeg, which can't
+        # impersonate Chrome and so 403s on Cloudflare CDNs. Oversize HLS is
+        # instead downloaded whole (native) and byte-sliced afterwards (below).
+        if PART_THRESHOLD > 0 and not _is_fallback and not is_instagram_post and not is_manifest:
             duration, est_size = await _probe_media(url, referer, jar_path)
             total_parts = 0
             if duration and est_size and est_size > PART_THRESHOLD:
@@ -544,11 +650,35 @@ async def download_video(
                     await queue.put({"type": "error", "message": message})
                     return
 
+            # Oversize HLS: downloaded whole via native (ffmpeg sectioning can't
+            # pass Cloudflare). Byte-slice the merged file so a memory-budgeted
+            # host delivers it in sequential parts, same as the direct path.
+            if is_manifest and PART_THRESHOLD > 0 and not _is_fallback:
+                videos = [Path(f) for f in saved_files if Path(f).suffix.lower() == ".mp4"]
+                biggest = max(videos, key=lambda p: p.stat().st_size, default=None)
+                if biggest and biggest.stat().st_size > PART_THRESHOLD:
+                    for f in saved_files:  # drop sidecar thumbnails; ship only parts
+                        p = Path(f)
+                        if p != biggest and p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
+                            p.unlink(missing_ok=True)
+                    await _deliver_local_file_in_parts(biggest, output_folder, queue, biggest.name)
+                    return
+
             await queue.put({"type": "done", "filename": filename or "", "files": saved_files})
         else:
             # Sniffed stream URLs are often session/IP-signed — they 403 when
             # replayed from the server. Re-resolve fresh from the player page
             # (megaplay/hianime URLs route through the anime resolver there).
+            # Only re-resolve when the referer is itself a page the anime
+            # resolver understands (extension-sniffed stream/watch URLs). The
+            # anime path sets referer to the bare CDN host (https://megaplay.buzz/)
+            # purely as the Referer header — that is NOT re-resolvable, and
+            # handing it to yt-dlp's generic extractor dies with "Unsupported URL".
+            referer_is_resolvable = bool(
+                referer
+                and _ANIME_AVAILABLE
+                and (_anime_parse(referer) or _megaplay_parse(referer))
+            )
             if (
                 not _is_fallback
                 and last_error
@@ -557,6 +687,7 @@ async def download_video(
                 and referer.startswith("http")
                 and referer != url
                 and re.search(r"\.(m3u8|mpd)([?#]|$)", parsed_url.path)
+                and referer_is_resolvable
             ):
                 await queue.put({
                     "type": "log",

@@ -413,12 +413,23 @@ async def _probe_qualities(m3u8_url: str, referer: Optional[str] = None) -> list
     which raises NotImplementedError on some ASGI event loops). Non-critical —
     returns [] on any failure.
     """
+    # mewstream's Cloudflare blocks anything without a real Chrome TLS fingerprint
+    # plus browser fetch-metadata headers. --extractor-args generic:impersonate
+    # does NOT apply to the manifest fetch — the global --impersonate flag does.
     cmd = [
         sys.executable, "-m", "yt_dlp", "--no-check-certificates", "--dump-json",
-        "--extractor-args", "generic:impersonate",
     ]
+    if _CURL_AVAILABLE:
+        cmd += ["--impersonate", "chrome"]
+    else:
+        cmd += ["--extractor-args", "generic:impersonate"]
     if referer:
-        cmd += ["--add-header", f"Referer:{referer}"]
+        cmd += [
+            "--add-header", f"Referer:{referer}",
+            "--add-header", "Sec-Fetch-Dest:empty",
+            "--add-header", "Sec-Fetch-Mode:cors",
+            "--add-header", "Sec-Fetch-Site:cross-site",
+        ]
     cmd.append(m3u8_url)
 
     def _run():
