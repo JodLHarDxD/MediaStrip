@@ -61,6 +61,51 @@ def test_sniffed_stream_url_is_reresolvable():
     assert parse_megaplay_url("https://megaplay.buzz/stream/s-2/161029/sub") is True
 
 
+# ── adaptive strategy ladder ─────────────────────────────────────────────────
+import hls_strategy as hs
+
+
+def test_status_classification():
+    assert hs.classify(200) == "ok"
+    assert hs.classify(206) == "ok"
+    assert hs.classify(403) == "blocked"
+    assert hs.classify(429) == "blocked"
+    assert hs.classify(404) == "expired"
+    assert hs.classify(410) == "expired"
+    assert hs.classify(500) == "blocked"  # unknown -> advance the ladder
+
+
+def test_ytdlp_flags_render_impersonate_native_headers():
+    strat = hs.STRATEGIES[0]  # chrome+secfetch
+    flags = hs.ytdlp_flags(strat, "https://megaplay.buzz/", impersonate_ok=True)
+    assert "--impersonate" in flags and "chrome" in flags
+    assert "--hls-prefer-native" in flags
+    assert "Referer:https://megaplay.buzz/" in flags
+    assert any(f.startswith("Sec-Fetch-") for f in flags)
+    # no curl_cffi -> degrade to extractor-arg form, never a bare impersonate
+    deg = hs.ytdlp_flags(strat, None, impersonate_ok=False)
+    assert "--impersonate" not in deg
+    assert "generic:impersonate" in deg
+
+
+def test_learned_winner_leads_the_ladder(tmp_path=None, monkeypatch=None):
+    # learned host -> that strategy is tried first; others follow
+    host = "cdn.example.test"
+    orig_load = hs._load_cache
+    hs._load_cache = lambda: {host: "safari+secfetch"}
+    try:
+        order = hs.ordered_strategies(host)
+        assert order[0].name == "safari+secfetch"
+        assert {s.name for s in order} == {s.name for s in hs.STRATEGIES}
+    finally:
+        hs._load_cache = orig_load
+
+
+def test_unknown_host_keeps_default_order():
+    order = hs.ordered_strategies("nope.unknown.test")
+    assert [s.name for s in order] == [s.name for s in hs.STRATEGIES]
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in fns:

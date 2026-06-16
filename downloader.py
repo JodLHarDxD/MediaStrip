@@ -118,18 +118,47 @@ INSTAGRAM_EMBED_HEADERS = {
 }
 
 
+async def _run_resolved_anime(
+    output_folder: Path, queue: asyncio.Queue, stream, title_hint: str, reresolve,
+):
+    """Download a resolved anime stream with one self-healing retry.
+
+    First attempt suppresses transport errors (emit_error=False). On a 'blocked'
+    (every CDN disguise rejected) or 'expired' (dead signed URL) result, re-resolve
+    a FRESH stream — new token, and the strategy ladder re-probes the CDN — then
+    make a final attempt that surfaces any error. 'ok'/'error' need no retry
+    ('error' means the real failure was already reported)."""
+    await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
+    status = await download_video(
+        stream.m3u8_url, output_folder, queue, referer=stream.referer,
+        title_hint=title_hint, emit_error=False,
+    )
+    if status in ("ok", "error"):
+        return
+
+    await queue.put({"type": "log", "value":
+        f"First attempt {status} — re-resolving a fresh stream and retrying..."})
+    try:
+        stream = await reresolve()
+    except Exception as e:
+        await queue.put({"type": "error", "message":
+            f"Re-resolve failed: {type(e).__name__}: {e}"})
+        return
+    await download_video(
+        stream.m3u8_url, output_folder, queue, referer=stream.referer,
+        title_hint=title_hint,
+    )
+
+
 async def _download_anime(url: str, output_folder: Path, queue: asyncio.Queue):
     """Resolve anime URL → m3u8, then delegate to the standard yt-dlp pipeline."""
     try:
         await queue.put({"type": "log", "value": "Anime URL detected — resolving stream..."})
         stream = await _anime_resolve(url)
         await queue.put({"type": "log", "value": f"Resolved: {stream.anime_title} — {stream.title} (Ep {stream.episode_number})"})
-        await queue.put({"type": "filename", "value": f"{stream.anime_title}_ep{stream.episode_number:02d}.mp4"})
-        await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
-        await download_video(
-            stream.m3u8_url, output_folder, queue, referer=stream.referer,
-            title_hint=f"{stream.anime_title}_ep{stream.episode_number:02d}",
-        )
+        title = f"{stream.anime_title}_ep{stream.episode_number:02d}"
+        await queue.put({"type": "filename", "value": f"{title}.mp4"})
+        await _run_resolved_anime(output_folder, queue, stream, title, lambda: _anime_resolve(url))
     except Exception as e:
         await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
 
@@ -142,11 +171,7 @@ async def _download_megaplay(url: str, output_folder: Path, queue: asyncio.Queue
         await queue.put({"type": "log", "value": "Anime player URL detected — resolving stream..."})
         stream = await _megaplay_resolve(url)
         await queue.put({"type": "log", "value": f"Resolved: {stream.title}"})
-        await queue.put({"type": "log", "value": "Handing off m3u8 to yt-dlp..."})
-        await download_video(
-            stream.m3u8_url, output_folder, queue, referer=stream.referer,
-            title_hint=stream.title,
-        )
+        await _run_resolved_anime(output_folder, queue, stream, stream.title, lambda: _megaplay_resolve(url))
     except Exception as e:
         await queue.put({"type": "error", "message": f"Anime resolution failed: {type(e).__name__}: {e}"})
 
@@ -233,6 +258,33 @@ def _ytdlp_context_flags(url: str, referer: str | None, jar_path: Path | None) -
     if jar_path:
         flags.extend(["--cookies", str(jar_path)])
     return flags
+
+
+# Adaptive transport: probe the CDN, pick the impersonation/header combo it
+# currently accepts, learn the winner per host (see hls_strategy.py).
+try:
+    import hls_strategy as _hls_strategy
+except Exception:
+    _hls_strategy = None
+
+
+class _SkipPick:
+    """Sentinel when adaptive probing is unavailable — caller uses static flags."""
+    status = "skip"
+    strategy = None
+    cf_ray = None
+
+    def summary(self) -> str:
+        return ""
+
+
+async def _pick_hls_strategy(url: str, referer: str | None):
+    if _hls_strategy is None:
+        return _SkipPick()
+    try:
+        return await _hls_strategy.pick_strategy(url, referer)
+    except Exception:
+        return _SkipPick()
 
 
 async def _probe_media(url: str, referer: str | None, jar_path: Path | None) -> tuple[float | None, int | None]:
@@ -464,7 +516,19 @@ async def download_video(
     single_item: bool = False,
     title_hint: str | None = None,
     _is_fallback: bool = False,
-):
+    emit_error: bool = True,
+) -> str:
+    """Returns a status: "ok" | "blocked" | "expired" | "error".
+
+    When emit_error is False the terminal error event is suppressed and the
+    status is returned instead, so an anime caller can re-resolve a fresh URL
+    and retry without surfacing a premature error to the UI.
+    """
+    async def _fail(message: str, status: str = "error") -> str:
+        if emit_error:
+            await queue.put({"type": "error", "message": message})
+        return status
+
     # Support "URL|referer=https://site.com" syntax for CDNs that check Referer
     if "|referer=" in url:
         url, pipe_referer = url.split("|referer=", 1)
@@ -472,14 +536,13 @@ async def download_video(
 
     if _ANIME_AVAILABLE and _anime_parse(url):
         await _download_anime(url, output_folder, queue)
-        return
+        return "ok"
     if _ANIME_AVAILABLE and _megaplay_parse(url):
         await _download_megaplay(url, output_folder, queue)
-        return
+        return "ok"
     if not _ANIME_AVAILABLE and _ANIME_URL_PATTERN.search(url):
         err = _ANIME_IMPORT_ERROR or "anime module not loaded"
-        await queue.put({"type": "error", "message": f"Anime module failed to load: {err}"})
-        return
+        return await _fail(f"Anime module failed to load: {err}")
 
     output_folder.mkdir(parents=True, exist_ok=True)
     if title_hint:
@@ -513,12 +576,36 @@ async def download_video(
     if limit_one:
         cmd.extend(["--playlist-items", "1"])
 
-    # m3u8 streams (anime CDNs) sit behind Cloudflare — needs real Chrome
-    # impersonation + native HLS downloader + fetch-metadata headers
+    # m3u8 streams (anime CDNs) sit behind Cloudflare. Pick a transport strategy
+    # adaptively: a fast manifest probe finds which impersonation/header combo the
+    # CDN currently accepts, the winner is cached per host, and a dead URL is
+    # reported as "expired" so the caller can re-resolve a fresh one.
     is_manifest = _is_manifest_url(url)
-    cmd.extend(_hls_cloudflare_flags(url))
-
-    if referer:
+    if is_manifest:
+        pick = await _pick_hls_strategy(url, referer)
+        if pick.status == "ok" and pick.strategy is not None:
+            await queue.put({"type": "log", "value": f"CDN accepts strategy '{pick.strategy.name}' — downloading."})
+            cmd.extend(_hls_strategy.ytdlp_flags(pick.strategy, referer, _IMPERSONATE_OK))
+        elif pick.status in ("expired", "blocked"):
+            # The probe already proved the URL is dead (expired) or every disguise
+            # is rejected (blocked) — don't waste a doomed yt-dlp run. Suppress
+            # under emit_error=False so the anime caller re-resolves a fresh URL.
+            ray = f" cf-ray={pick.cf_ray}" if pick.cf_ray else ""
+            await queue.put({"type": "log", "value": f"CDN probe: {pick.summary()}{ray} → {pick.status}."})
+            if not emit_error:
+                return pick.status
+            if pick.status == "expired":
+                msg = "Stream URL expired and a fresh resolve still failed — try again."
+            else:
+                msg = ("All CDN transport strategies are blocked — the anime source likely "
+                       f"changed its Cloudflare protection (probe: {pick.summary()}{ray}).")
+            await queue.put({"type": "error", "message": msg})
+            return pick.status
+        else:  # "skip" — curl_cffi missing, fall back to the static recipe + a real attempt
+            cmd.extend(_hls_cloudflare_flags(url))
+            if referer:
+                cmd.extend(["--add-header", f"Referer:{referer}"])
+    elif referer:
         cmd.extend(["--add-header", f"Referer:{referer}"])
 
     # Forward browser cookies for login-gated / session-protected streams.
@@ -554,7 +641,7 @@ async def download_video(
                     url, output_folder, queue, referer, jar_path, duration, total_parts,
                     title_hint=title_hint,
                 )
-                return
+                return "ok"
 
         filename = None
         total_items = 1
@@ -618,7 +705,7 @@ async def download_video(
 
         if getattr(queue, "cancelled", False):
             await queue.put({"type": "error", "message": "Download cancelled."})
-            return
+            return "error"
 
         if returncode == 0:
             saved_files = [str(path.resolve()) for path in sorted(output_folder.rglob("*")) if path.is_file()]
@@ -648,7 +735,7 @@ async def download_video(
                     else:
                         message = "Download finished without producing any files. Try another URL or format."
                     await queue.put({"type": "error", "message": message})
-                    return
+                    return "error"
 
             # Oversize HLS: downloaded whole via native (ffmpeg sectioning can't
             # pass Cloudflare). Byte-slice the merged file so a memory-budgeted
@@ -662,9 +749,10 @@ async def download_video(
                         if p != biggest and p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
                             p.unlink(missing_ok=True)
                     await _deliver_local_file_in_parts(biggest, output_folder, queue, biggest.name)
-                    return
+                    return "ok"
 
             await queue.put({"type": "done", "filename": filename or "", "files": saved_files})
+            return "ok"
         else:
             # Sniffed stream URLs are often session/IP-signed — they 403 when
             # replayed from the server. Re-resolve fresh from the player page
@@ -693,17 +781,32 @@ async def download_video(
                     "type": "log",
                     "value": "Stream URL rejected (403 — likely session-bound). Re-resolving from the player page...",
                 })
-                await download_video(
+                return await download_video(
                     referer, output_folder, queue,
                     cookies=cookies, single_item=True, _is_fallback=True,
+                    emit_error=emit_error,
                 )
-                return
+
+            # Classify the failure so an anime caller can decide whether to
+            # re-resolve (expired URL) or stop. Transport failures are suppressed
+            # under emit_error=False because the caller will retry with a fresh URL.
+            status = "error"
+            if is_manifest and last_error:
+                if "403" in last_error or "Forbidden" in last_error:
+                    status = "blocked"
+                elif re.search(r"\b(404|410|Gone)\b", last_error) or "expired" in last_error.lower():
+                    status = "expired"
+            if status in ("blocked", "expired") and not emit_error:
+                return status
             await queue.put({"type": "error", "message": _friendly_ytdlp_error(last_error)})
+            return status
 
     except FileNotFoundError:
         await queue.put({"type": "error", "message": "yt-dlp not found — install it with: pip install yt-dlp or python -m pip install yt-dlp"})
+        return "error"
     except Exception as e:
         await queue.put({"type": "error", "message": f"{type(e).__name__}: {e}"})
+        return "error"
     finally:
         if jar_path:
             try:
