@@ -233,6 +233,71 @@ def _is_manifest_url(url: str) -> bool:
     return bool(_MANIFEST_RE.search(urlparse(url).path))
 
 
+# ── YouTube PO-token / client steering ────────────────────────────────────────
+# YouTube now requires a Google-Video-Server (GVS) "PO token" to fetch media. From
+# a datacenter IP the token-exempt client (android_vr) is blocked, yt-dlp downgrades
+# to `tv`, and tv's googlevideo URLs 403 ("unable to download video data: HTTP Error
+# 403"). yt-dlp CANNOT mint these tokens — they come from the user's cookies (the
+# browser extension path) or a PO-token provider. These env knobs let the deploy
+# supply a provider/token/client ladder with no code change:
+#   MS_YT_POT_BASE_URL  — bgutil HTTP POT provider base url, e.g. http://pot:4416
+#                         (requires the bgutil-ytdlp-pot-provider plugin, in reqs)
+#   MS_YT_PO_TOKEN      — explicit token(s), comma-separated "CLIENT.CONTEXT+TOKEN"
+#   MS_YT_PLAYER_CLIENT — override the client ladder, e.g. "web_safari,tv,mweb"
+_YT_HOST_RE = re.compile(
+    r"(?:^|\.)(?:youtube\.com|youtu\.be|youtube-nocookie\.com|youtubekids\.com)$"
+)
+
+
+def _is_youtube(url: str) -> bool:
+    try:
+        return bool(_YT_HOST_RE.search(urlparse(url).netloc.lower()))
+    except Exception:
+        return False
+
+
+# Client ladder used when the request carries cookies. Cookie-aware clients lead:
+# web_safari/web/mweb spend the user's forwarded YouTube session to authenticate
+# the GVS request (the only thing that beats the datacenter 403). android_vr is
+# kept as the TAIL — it ignores cookies and gets IP-blocked on a datacenter, but
+# it's yt-dlp's working default for unauthenticated/local runs, so as a fallback
+# it guarantees this ladder is never worse than the stock one (verified: the web
+# clients return "DRM protected" for some videos without auth, and android_vr then
+# recovers the download).
+_YT_COOKIE_CLIENTS = "web_safari,web,mweb,tv,android_vr"
+
+
+def _youtube_extractor_args(url: str, has_cookies: bool = False) -> list[str]:
+    """--extractor-args steering YouTube extraction, built from env (see above).
+
+    Returns [] for non-YouTube URLs. When the request carries cookies (the browser
+    extension forwarding the user's YouTube session) the client ladder is pinned to
+    the cookie-aware clients so the session authenticates the media request. When a
+    bgutil POT provider is reachable (MS_YT_POT_BASE_URL or the plugin's localhost
+    default) the GVS PO token is supplied transparently instead. An explicit
+    MS_YT_PLAYER_CLIENT always wins."""
+    if not _is_youtube(url):
+        return []
+    flags: list[str] = []
+    yt_parts: list[str] = []
+    client = os.environ.get("MS_YT_PLAYER_CLIENT", "").strip()
+    if not client and has_cookies:
+        client = _YT_COOKIE_CLIENTS
+    if client:
+        yt_parts.append(f"player_client={client}")
+    po = os.environ.get("MS_YT_PO_TOKEN", "").strip()
+    if po:
+        for tok in (t.strip() for t in po.split(",")):
+            if tok:
+                yt_parts.append(f"po_token={tok}")
+    if yt_parts:
+        flags += ["--extractor-args", "youtube:" + ";".join(yt_parts)]
+    base = os.environ.get("MS_YT_POT_BASE_URL", "").strip().rstrip("/")
+    if base:
+        flags += ["--extractor-args", f"youtubepot-bgutilhttp:base_url={base}"]
+    return flags
+
+
 def _hls_cloudflare_flags(url: str) -> list[str]:
     """yt-dlp flags to pull a Cloudflare-protected HLS manifest + its segments.
 
@@ -253,6 +318,7 @@ def _hls_cloudflare_flags(url: str) -> list[str]:
 
 def _ytdlp_context_flags(url: str, referer: str | None, jar_path: Path | None) -> list[str]:
     flags = list(_hls_cloudflare_flags(url))
+    flags.extend(_youtube_extractor_args(url, has_cookies=bool(jar_path)))
     if referer:
         flags.extend(["--add-header", f"Referer:{referer}"])
     if jar_path:
@@ -621,6 +687,10 @@ async def download_video(
         else:
             os.unlink(tmp)
 
+    # GVS PO-token / client steering (YouTube only — no-op elsewhere). Cookies
+    # present → pin to the cookie-aware client ladder (extension session auth).
+    cmd.extend(_youtube_extractor_args(url, has_cookies=bool(jar_path)))
+
     cmd.append(url)
 
     try:
@@ -823,6 +893,14 @@ def _friendly_ytdlp_error(last_error: str | None) -> str:
             "YouTube blocked this server with a bot-check. Use the MediaStrip browser "
             "extension on the video page instead — it forwards your YouTube login cookies. "
             "Or run MediaStrip locally (python -m uvicorn main:app --port 8000)."
+        )
+    low = last_error.lower()
+    if "unable to download video data" in low and ("403" in last_error or "forbidden" in low):
+        return (
+            "YouTube refused the video stream from this server (HTTP 403). It now requires "
+            "a “PO token” that datacenter IPs can't generate. Fixes: use the MediaStrip "
+            "browser extension on the video page (forwards your YouTube session), run "
+            "MediaStrip locally, or configure a PO-token provider (set MS_YT_POT_BASE_URL)."
         )
     if "429" in last_error or "Too Many Requests" in last_error:
         return (

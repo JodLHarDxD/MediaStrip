@@ -10,6 +10,10 @@ slowapi>=0.1.9
 httpx>=0.27.0
 beautifulsoup4>=4.12.0
 curl_cffi>=0.7.0
+# yt-dlp plugin: lets the YouTube extractor pull GVS PO tokens from a bgutil HTTP
+# provider (set MS_YT_POT_BASE_URL). Required for cookieless server-side YouTube
+# downloads from datacenter IPs (otherwise: "unable to download video data: 403").
+bgutil-ytdlp-pot-provider>=1.1.0
 # torch + torchvision: install separately with CUDA wheel for GPU watermark removal
 # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 # pip install simple-lama-inpainting
