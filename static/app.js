@@ -36,6 +36,17 @@ function scrollToCatalog(event) {
   scrollToSection('result-catalog', event);
 }
 
+// ─── Hero terminal: paste a URL up top, run the real download below ───────────
+function heroDownload(event) {
+  if (event) event.preventDefault();
+  const url = (document.getElementById('hero-url-input')?.value || '').trim();
+  const mainInput = document.getElementById('url-input');
+  if (url && mainInput) mainInput.value = url;
+  scrollToSection('tool-download');
+  if (url) setTimeout(() => startDownload(), 650); // let the scroll settle first
+  else document.getElementById('url-input')?.focus();
+}
+
 // ─── Paste ──────────────────────────────────────────────────────────────────
 async function pasteUrl() {
   try {
@@ -1100,75 +1111,94 @@ function initMotionEngine() {
     });
   }
 
-  // 6. Slot Machine Hero Animation
+  // 6. Slot Machine Hero Animation — glyph-tight slots, replays on hero re-entry
   const heroTitle = document.getElementById('hero-title');
   if (heroTitle) {
     const text = heroTitle.getAttribute('data-slot-text') || "MEDIA STRIP";
     heroTitle.innerHTML = ''; // clear any existing content
-    
+
     const words = text.split(' ');
-    const columnsToAnimate = [];
-    
+    const columns = [];
     const charsList = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*".split('');
-    
+
     words.forEach(word => {
       const wordDiv = document.createElement('div');
       wordDiv.className = 'hero-word';
-      
+
       word.split('').forEach(char => {
         const slot = document.createElement('span');
         slot.className = 'hero-char-slot';
-        
+
         const column = document.createElement('div');
         column.className = 'hero-char-column';
-        
-        // Number of random characters to spin through
-        const numRandomChars = Math.floor(Math.random() * 8) + 8; // 8 to 15 chars
-        
+
+        const numRandomChars = Math.floor(Math.random() * 8) + 8; // 8–15 scramble frames
         for (let i = 0; i < numRandomChars; i++) {
-          const randomChar = charsList[Math.floor(Math.random() * charsList.length)];
-          const charDiv = document.createElement('span');
-          charDiv.className = 'hero-char';
-          charDiv.innerText = randomChar;
-          column.appendChild(charDiv);
+          const c = document.createElement('span');
+          c.className = 'hero-char';
+          c.innerText = charsList[Math.floor(Math.random() * charsList.length)];
+          column.appendChild(c);
         }
-        
-        // Final correct character
         const finalCharDiv = document.createElement('span');
         finalCharDiv.className = 'hero-char';
         finalCharDiv.innerText = char;
         column.appendChild(finalCharDiv);
-        
+
         slot.appendChild(column);
         wordDiv.appendChild(slot);
-        
-        columnsToAnimate.push({
-          el: column,
-          totalItems: numRandomChars + 1
-        });
+        columns.push({ el: column, slot, finalCharDiv, totalItems: numRandomChars + 1 });
       });
-      
+
       heroTitle.appendChild(wordDiv);
     });
 
-    // Animate the columns
-    columnsToAnimate.forEach((colData, index) => {
-      // Calculate the exact percentage to scroll the last item into view
-      const targetYPercent = -100 * (colData.totalItems - 1) / colData.totalItems;
-      
-      gsap.fromTo(colData.el, 
-        { yPercent: 0 },
-        {
-          yPercent: targetYPercent,
-          duration: 1.8 + Math.random() * 0.8,
-          ease: "power4.inOut",
-          delay: 3.5 + (index * 0.05) // staggered after loader
-        }
-      );
+    // Pin each slot to its FINAL glyph's width — the scramble chars (M, W, @) are
+    // wider and were inflating every slot, which is what spread the wordmark.
+    // Measure after fonts load so Clash Display metrics are correct.
+    const tightenSlots = () => {
+      columns.forEach(c => {
+        c.finalCharDiv.style.width = 'auto';        // unconstrain to read the glyph's true width
+        c.finalCharDiv.style.letterSpacing = 'normal'; // neutralize inherited tracking on the measure
+        const w = c.finalCharDiv.getBoundingClientRect().width;
+        c.finalCharDiv.style.width = '';            // back to 100% of the (about-to-be-pinned) slot
+        c.finalCharDiv.style.letterSpacing = '';
+        if (w) c.slot.style.width = Math.ceil(w) + 'px';
+      });
+    };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tightenSlots);
+    else tightenSlots();
+    let resizeRaf;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(resizeRaf);
+      columns.forEach(c => { c.slot.style.width = ''; });
+      resizeRaf = requestAnimationFrame(tightenSlots);
     });
+
+    // Spin scramble → final. Reused on every hero entry.
+    const playSlots = (delay = 0) => {
+      columns.forEach((c, i) => {
+        const target = -100 * (c.totalItems - 1) / c.totalItems;
+        gsap.fromTo(c.el,
+          { yPercent: 0 },
+          { yPercent: target, duration: 1.5 + Math.random() * 0.7, ease: "power4.inOut", delay: delay + i * 0.04 }
+        );
+      });
+    };
+
+    playSlots(3.5); // initial cinematic play once the loader clears
+    if (window.ScrollTrigger) {
+      // re-decode every time the hero scrolls back into view. onEnterBack fires
+      // when scrolling UP re-crosses the end (hero bottom re-entering past the
+      // viewport top) — the start 'top top' is at scroll 0, so a 'top X%' start
+      // would be unreachable and never fire.
+      ScrollTrigger.create({
+        trigger: '#hero', start: 'top top', end: 'bottom top',
+        onEnterBack: () => playSlots(0),
+      });
+    }
   }
 
-  gsap.to('.hero-eyebrow, .hero-tagline .word, .hero-actions, .hero-scroll-hint', {
+  gsap.to('.hero-eyebrow, .hero-tagline .word, .hero-terminal, .hero-actions, .hero-scroll-hint', {
     y: 0,
     opacity: 1,
     scale: 1,

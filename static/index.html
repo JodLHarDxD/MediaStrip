@@ -57,7 +57,9 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Archivo+Black&family=Cinzel+Decorative:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin>
+<link href="https://fonts.cdnfonts.com/css/clash-display" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <link rel="icon" href="/favicon.ico" type="image/svg+xml">
 <link rel="shortcut icon" href="/favicon.ico" type="image/svg+xml">
@@ -91,7 +93,7 @@ body.app-ready .site-shell {
   transition: opacity 900ms cubic-bezier(0.4, 0, 0.2, 1), visibility 900ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
-<link rel="stylesheet" href="/static/style.css?v=2">
+<link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body>
 
@@ -120,6 +122,7 @@ body.app-ready .site-shell {
       <li><a href="#tech-stack" onclick="scrollToSection('tech-stack', event)">Stack</a></li>
       <li><a href="#blog" onclick="scrollToSection('blog', event)">Blog</a></li>
     </ul>
+    <div class="top-nav-right">
     <div class="top-nav-socials">
       <a href="https://github.com/JodLHarDxD/MediaStrip" target="_blank" rel="noopener" title="GitHub" aria-label="GitHub">
         <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.02c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.8 1.18 1.82 1.18 3.08 0 4.43-2.69 5.4-5.25 5.69.41.36.77 1.06.77 2.14v3.17c0 .31.21.67.8.55A10.53 10.53 0 0 0 23.5 12.02C23.5 5.74 18.27.5 12 .5z"/></svg>
@@ -133,6 +136,11 @@ body.app-ready .site-shell {
       <a href="mailto:hello@mediastrip.app" title="Email" aria-label="Email">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       </a>
+    </div>
+    <button class="nav-cta" data-magnetic onclick="scrollToSection('tool-download')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      Download
+    </button>
     </div>
   </div>
 </nav>
@@ -171,12 +179,22 @@ body.app-ready .site-shell {
     <p class="hero-tagline" id="hero-tagline">
       <span class="word">Download</span> <span class="word">·</span> <span class="word">Clean</span> <span class="word">·</span> <span class="word">Keep</span>
     </p>
-    <div class="hero-actions" id="hero-actions">
-      <button class="btn-hero btn-hero-primary" data-magnetic onclick="scrollToSection('tool-download')">
-        Start Downloading
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+    <form class="hero-terminal" id="hero-terminal" onsubmit="heroDownload(event)">
+      <span class="hero-terminal-prompt">&gt;</span>
+      <input
+        type="url" id="hero-url-input" class="hero-terminal-input"
+        placeholder="Paste a video URL to download..."
+        autocomplete="off" spellcheck="false"
+      >
+      <button type="submit" class="hero-terminal-go">
+        Download
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
+    </form>
+    <div class="hero-actions" id="hero-actions">
       <button class="btn-hero btn-hero-secondary" data-magnetic onclick="scrollToSection('tool-watermark')">Remove Watermark</button>
+      <span class="hero-actions-sep">or</span>
+      <button class="btn-hero btn-hero-secondary" data-magnetic onclick="scrollToSection('how-it-works')">See How It Works</button>
     </div>
   </div>
 
@@ -899,6 +917,6 @@ body.app-ready .site-shell {
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
 
-<script src="/static/app.js?v=2"></script>
+<script src="/static/app.js?v=3"></script>
 </body>
 </html>
