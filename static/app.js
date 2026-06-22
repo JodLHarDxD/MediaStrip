@@ -926,12 +926,12 @@ function initFluidBackground() {
       float df = snoise(pos - u_time * 0.05);
       float noise = snoise(pos + df + u_time * 0.1);
       
-      // Intense cyan/blue glowing colors
-      vec3 color = mix(vec3(0.0, 0.15, 0.5), vec3(0.0, 0.85, 1.0), smoothstep(-0.2, 0.8, noise));
-      color += mix(vec3(0.0), vec3(0.4, 0.0, 0.8), smoothstep(0.4, 0.9, snoise(pos - u_time * 0.1)));
-      
-      color += vec3(0.0, 0.7, 0.9) * max(0.0, noise*noise*noise*2.0);
-      color += vec3(0.0, 0.5, 0.8) * ripple * 1.5; // Brighten around mouse
+      // Electric-blue aurora — green channel pulled down to kill the teal/green wash
+      vec3 color = mix(vec3(0.02, 0.10, 0.45), vec3(0.10, 0.45, 1.0), smoothstep(-0.2, 0.8, noise));
+      color += mix(vec3(0.0), vec3(0.42, 0.10, 0.95), smoothstep(0.4, 0.9, snoise(pos - u_time * 0.1)));
+
+      color += vec3(0.12, 0.40, 1.0) * max(0.0, noise*noise*noise*2.0);
+      color += vec3(0.10, 0.35, 0.95) * ripple * 1.5; // Brighten around mouse
 
       float vignette = smoothstep(1.5, 0.0, length(st - vec2(0.5)));
       color *= vignette;
