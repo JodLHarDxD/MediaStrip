@@ -166,7 +166,7 @@ body::after {
 /* Floating glass pill — drifts in once the loader clears (skiper-ui signature) */
 .top-nav {
   position: fixed; top: 1.1rem; left: 50%; right: auto; z-index: 200;
-  width: min(1040px, calc(100% - 2rem));
+  width: min(1160px, calc(100% - 2rem));
   height: 60px;
   background: rgba(10,14,22,0.55);
   backdrop-filter: blur(22px) saturate(1.6);
@@ -186,7 +186,7 @@ body.app-ready .top-nav { opacity: 1; transform: translateX(-50%) translateY(0);
   margin: 0; height: 100%;
   padding: 0 0.55rem 0 1.5rem;
   display: flex; align-items: center; justify-content: space-between;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 /* Download CTA living in the pill */
@@ -212,16 +212,18 @@ body.app-ready .top-nav { opacity: 1; transform: translateX(-50%) translateY(0);
   letter-spacing: -0.01em; color: var(--text);
 }
 .top-nav-brand span {
-  color: #0A0E15;
-  text-shadow: var(--word-glow);
+  background: var(--grad-live-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
 }
 
 .top-nav-links {
-  display: flex; gap: 2rem; align-items: center;
+  display: flex; gap: 1.35rem; align-items: center;
 }
 .top-nav-links a {
   font-size: var(--fs-xs); font-weight: 500;
-  letter-spacing: 0.18em; text-transform: uppercase;
+  letter-spacing: 0.11em; text-transform: uppercase;
+  white-space: nowrap;
   color: var(--text-2);
   transition: color 200ms var(--ease);
   position: relative; padding: 0.5rem 0;
@@ -567,15 +569,21 @@ body.app-ready .top-nav { opacity: 1; transform: translateX(-50%) translateY(0);
 .eyebrow-num { color: var(--text-muted); margin-right: 0.75rem; }
 
 .gradient-text {
-  color: #0A0E15;
-  text-shadow: var(--word-glow);
+  background: var(--grad-live-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  /* inline-block + padding so clip:text covers full glyph extents (no sliced
+     ascenders/italic descenders); looser leading so the accent line breathes */
+  display: inline-block;
+  padding: 0.04em 0.06em 0.16em;
+  line-height: 1.18;
 }
 
 .section-header { max-width: 720px; margin-bottom: 4rem; }
 .section-heading {
   font-family: 'Clash Display', sans-serif;
   font-size: clamp(2.25rem, 4.5vw, 3.75rem);
-  font-weight: 700; line-height: 1.05;
+  font-weight: 700; line-height: 1.12;
   letter-spacing: -0.03em;
   color: var(--text);
 }
@@ -592,7 +600,7 @@ body.app-ready .top-nav { opacity: 1; transform: translateX(-50%) translateY(0);
 .manifesto-title {
   font-family: 'Clash Display', sans-serif;
   font-size: clamp(2.75rem, 6vw, 5rem);
-  font-weight: 700; line-height: 1.02;
+  font-weight: 700; line-height: 1.1;
   letter-spacing: -0.035em;
   color: var(--text);
 }
@@ -1920,7 +1928,7 @@ body { cursor: auto; }
 .cta-heading {
   font-family: 'Clash Display', sans-serif;
   font-size: clamp(3rem, 7vw, 5.5rem);
-  font-weight: 700; line-height: 1;
+  font-weight: 700; line-height: 1.08;
   letter-spacing: -0.04em;
   color: var(--text);
   margin-bottom: 1.25rem;
