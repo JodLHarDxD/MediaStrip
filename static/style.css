@@ -1107,29 +1107,91 @@ body { cursor: auto; }
 }
 .results-empty {
   position: relative; z-index: 1;
-  min-height: 280px;
+  min-height: 300px;
   border-radius: 22px;
-  border: 1px dashed rgba(122,143,166,0.28);
-  background: rgba(255,255,255,0.02);
-  display: grid; place-items: center;
+  border: 1px dashed rgba(122,143,166,0.22);
+  background: rgba(255,255,255,0.015);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
   text-align: center;
-  padding: 2.5rem 2rem;
+  padding: 3.25rem 2rem;
+  overflow: hidden;
+}
+/* Soft volumetric backlight — gives the type something to emerge from, kills the void */
+.results-empty::before {
+  content: '';
+  position: absolute;
+  width: 460px; height: 220px;
+  top: 40%; left: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(60% 60% at 50% 50%, rgba(0,229,255,0.10), transparent 70%),
+    radial-gradient(70% 70% at 55% 45%, rgba(123,97,255,0.10), transparent 72%);
+  filter: blur(26px);
+  pointer-events: none;
 }
 .results-empty[hidden] { display: none; }
+
+/* Ghost stack — foreshadows the catalog that "unfolds from a compact stack" */
+.empty-stack {
+  position: relative;
+  width: 140px; height: 96px;
+  margin-bottom: 1.9rem;
+}
+.empty-card {
+  position: absolute; left: 50%;
+  transform: translateX(-50%);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012));
+}
+.empty-card--back2 { width: 88px;  height: 54px; top: 0;    opacity: .38; }
+.empty-card--back1 { width: 112px; height: 60px; top: 13px; opacity: .62; }
+.empty-card--front {
+  width: 140px; height: 66px; top: 28px; opacity: 1;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.42);
+  overflow: hidden;
+}
+/* single structural accent — the one brand hairline, nothing louder */
+.empty-card--front::before {
+  content: '';
+  position: absolute; inset: 0 0 auto 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+  opacity: .7;
+}
+/* faint skeleton bars — implies a finished file is what lands here */
+.empty-card--front::after {
+  content: '';
+  position: absolute; left: 14px; right: 14px; top: 24px; height: 6px;
+  border-radius: 3px;
+  background: rgba(122,143,166,0.14);
+  box-shadow: 0 16px 0 rgba(122,143,166,0.08);
+}
+
 .results-empty-title {
   font-family: 'Clash Display', sans-serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 700;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: -0.04em;
-  color: #0A0E15;
-  text-shadow: var(--word-glow);
-  margin-bottom: 0.75rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.65rem;
+  /* etched luminous gradient — letters emerge from the surface, no black void */
+  background: linear-gradient(180deg, #EAF1F8 0%, #9CB0C4 52%, #51647A 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* debossed crisp edge + soft brand backlight (not the harsh word-glow) */
+  filter:
+    drop-shadow(0 1px 0 rgba(0,0,0,0.55))
+    drop-shadow(0 0 16px rgba(0,229,255,0.12))
+    drop-shadow(0 0 30px rgba(123,97,255,0.10));
 }
 .results-empty p {
-  max-width: 520px;
+  max-width: 460px;
   color: var(--text-2);
   line-height: 1.7;
+  font-size: 0.95rem;
 }
 .results-stream {
   position: relative; z-index: 1;
@@ -1591,16 +1653,6 @@ body { cursor: auto; }
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.625rem; color: var(--text-muted);
   letter-spacing: 0.2em;
-}
-.results-empty-title {
-  font-family: 'Clash Display', sans-serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: -0.04em;
-  color: #0A0E15;
-  text-shadow: var(--word-glow);
-  margin-bottom: 0.75rem;
 }
 .feature-title {
   font-family: 'Clash Display', sans-serif;
