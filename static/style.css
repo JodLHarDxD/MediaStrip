@@ -304,11 +304,10 @@ body.app-ready .top-nav { opacity: 1; transform: translateX(-50%) translateY(0);
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #0A0E15;
-  /* charcoal fill + cyan/violet glow (matches the word-glow language). drop-shadow
-     not text-shadow — a per-char text-shadow gets boxed by each slot's overflow clip;
-     drop-shadow follows the glyph alpha. */
-  filter: drop-shadow(0 0 12px rgba(0,229,255,0.5)) drop-shadow(0 0 26px rgba(123,97,255,0.45)) drop-shadow(0 0 42px rgba(0,229,255,0.18));
+  color: #f4f8ff;
+  /* glow via drop-shadow on the whole title — a per-char text-shadow gets boxed
+     by each slot's overflow:hidden clip. drop-shadow follows the glyph alpha. */
+  filter: drop-shadow(0 6px 34px rgba(20,120,255,0.28)) drop-shadow(0 0 14px rgba(140,200,255,0.22));
 }
 .hero-char-slot {
   display: inline-block; /* JS pins width to the final glyph — that's what tightens it */
