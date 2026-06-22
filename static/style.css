@@ -1648,8 +1648,9 @@ body { cursor: auto; }
 .pipeline-stat-num {
   font-family: 'Clash Display', sans-serif;
   font-size: 1.75rem; font-weight: 700;
-  color: #0A0E15;
-  text-shadow: var(--word-glow);
+  background: linear-gradient(180deg, #F4F8FC 0%, #AFC0D2 55%, #6E8197 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
 }
 .pipeline-stat-label {
   font-size: var(--fs-xs); color: var(--text-muted);
@@ -1969,8 +1970,9 @@ body { cursor: auto; }
   margin-bottom: 0.75rem;
 }
 .footer-logo span {
-  color: #0A0E15;
-  text-shadow: var(--word-glow);
+  background: var(--grad-live-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
 }
 .footer-tagline {
   font-size: var(--fs-base); color: var(--text-2);
