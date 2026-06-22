@@ -93,7 +93,7 @@ body.app-ready .site-shell {
   transition: opacity 900ms cubic-bezier(0.4, 0, 0.2, 1), visibility 900ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
-<link rel="stylesheet" href="/static/style.css?v=13">
+<link rel="stylesheet" href="/static/style.css?v=14">
 </head>
 <body>
 
@@ -118,7 +118,7 @@ body.app-ready .site-shell {
       <li><a href="#how-it-works" onclick="scrollToSection('how-it-works', event)">How It Works</a></li>
       <li><a href="#tool-download" onclick="scrollToSection('tool-download', event)">Download</a></li>
       <li><a href="#tool-watermark" onclick="scrollToSection('tool-watermark', event)">Watermark</a></li>
-      <li><a href="#showcase" onclick="scrollToSection('showcase', event)">Showcase</a></li>
+      <li><a href="#pipeline" onclick="scrollToSection('pipeline', event)">Showcase</a></li>
       <li><a href="#tech-stack" onclick="scrollToSection('tech-stack', event)">Stack</a></li>
       <li><a href="#blog" onclick="scrollToSection('blog', event)">Blog</a></li>
     </ul>
@@ -758,37 +758,37 @@ body.app-ready .site-shell {
 
   <div class="tech-grid">
     <div class="tech-card reveal" data-accent="cyan">
-      <div class="tech-card-icon">⚡</div>
+      <div class="tech-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
       <h3 class="tech-card-name">FastAPI</h3>
       <p class="tech-card-role">Backend Framework</p>
       <p class="tech-card-desc">Async Python web framework with automatic OpenAPI docs, SSE streaming, and sub-millisecond routing. Handles concurrent downloads without blocking.</p>
     </div>
     <div class="tech-card reveal" data-accent="violet">
-      <div class="tech-card-icon">📥</div>
+      <div class="tech-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
       <h3 class="tech-card-name">yt-dlp</h3>
       <p class="tech-card-role">Media Extraction</p>
       <p class="tech-card-desc">Fork of youtube-dl with active maintenance. Supports 1000+ sites, live progress streaming, and adaptive format selection for best quality.</p>
     </div>
     <div class="tech-card reveal" data-accent="amber">
-      <div class="tech-card-icon">👁️</div>
+      <div class="tech-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
       <h3 class="tech-card-name">OpenCV</h3>
       <p class="tech-card-role">Computer Vision</p>
       <p class="tech-card-desc">Frame sampling, temporal variance analysis, and watermark region detection. TELEA inpainting as CPU fallback when GPU isn't available.</p>
     </div>
     <div class="tech-card reveal" data-accent="rose">
-      <div class="tech-card-icon">🧠</div>
+      <div class="tech-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></div>
       <h3 class="tech-card-name">LaMa</h3>
       <p class="tech-card-role">AI Inpainting</p>
       <p class="tech-card-desc">Large Mask Inpainting — a state-of-the-art neural network that reconstructs missing image regions using Fourier convolutions and perceptual loss.</p>
     </div>
     <div class="tech-card reveal" data-accent="teal">
-      <div class="tech-card-icon">🎬</div>
+      <div class="tech-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.5"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg></div>
       <h3 class="tech-card-name">ffmpeg</h3>
       <p class="tech-card-role">Media Processing</p>
       <p class="tech-card-desc">Stream-copy downloads bypass re-encoding entirely. For watermark output, preserves audio track and muxes clean video with original sound.</p>
     </div>
     <div class="tech-card reveal" data-accent="green">
-      <div class="tech-card-icon">🔥</div>
+      <div class="tech-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></div>
       <h3 class="tech-card-name">CUDA</h3>
       <p class="tech-card-role">GPU Acceleration</p>
       <p class="tech-card-desc">LaMa inpainting runs on NVIDIA GPUs via PyTorch + CUDA. 1080p video watermark removal completes in minutes instead of hours.</p>
