@@ -511,10 +511,10 @@ body.app-ready .top-nav { opacity: 1; transform: translateX(-50%) translateY(0);
    COORDINATES STRIP
 ═══════════════════════════════════════════════════ */
 .coords-strip {
-  height: 52px;
-  background: rgba(5,8,11,0.9);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  height: 46px;
+  background: transparent;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
   overflow: hidden;
   position: relative; z-index: 5;
 }
@@ -523,16 +523,17 @@ body.app-ready .top-nav { opacity: 1; transform: translateX(-50%) translateY(0);
   content: ''; position: absolute; top: 0; bottom: 0;
   width: 120px; z-index: 2; pointer-events: none;
 }
-.coords-strip::before { left: 0; background: linear-gradient(90deg, rgba(6,9,16,1), transparent); }
-.coords-strip::after  { right: 0; background: linear-gradient(-90deg, rgba(6,9,16,1), transparent); }
+.coords-strip::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
+.coords-strip::after  { right: 0; background: linear-gradient(-90deg, var(--bg), transparent); }
 
 .coords-track {
   display: inline-flex; align-items: center;
   height: 100%; white-space: nowrap;
   animation: tickerScroll 80s linear infinite;
   font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-xs); color: #0A0E15;
-  text-shadow: var(--word-glow);
+  font-size: var(--fs-2xs); letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(122,143,166,0.55);
   letter-spacing: 0.12em;
   will-change: transform;
 }
