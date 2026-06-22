@@ -10,8 +10,11 @@
   gap: 6px !important;
   padding: 7px 11px !important;
   border-radius: 10px !important;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.95), rgba(123, 97, 255, 0.95)) !important;
-  color: #06090d !important;
+  background:
+    linear-gradient(#0a0e15, #0a0e15) padding-box,
+    linear-gradient(115deg, #1B4DFF, #0A84FF, #22CFFF, #6A4BFF) border-box !important;
+  border: 1.5px solid transparent !important;
+  color: #eaf2ff !important;
   font-family: "DM Sans", system-ui, -apple-system, sans-serif !important;
   font-size: 12px !important;
   font-weight: 700 !important;
@@ -22,7 +25,7 @@
   transform: translateY(-4px) scale(0.96);
   pointer-events: none;
   transition: opacity 0.18s ease, transform 0.18s ease !important;
-  box-shadow: 0 4px 18px rgba(0, 229, 255, 0.35), 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 0 18px rgba(20, 130, 255, 0.30), inset 0 0 14px rgba(30, 120, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.45) !important;
   line-height: 1 !important;
 }
 .__ms_vbtn.__ms_vshow {
@@ -32,7 +35,7 @@
 }
 .__ms_vbtn.__ms_voff { display: none !important; }
 .__ms_vbtn:hover {
-  box-shadow: 0 6px 24px rgba(0, 229, 255, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 0 30px rgba(20, 140, 255, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.45) !important;
 }
 .__ms_vbtn svg { display: block !important; }
 .__ms_vbtn .__ms_vx {
@@ -41,11 +44,11 @@
   border-radius: 6px !important;
   font-size: 10px !important;
   font-weight: 800 !important;
-  color: rgba(6, 9, 13, 0.55) !important;
+  color: rgba(234, 242, 255, 0.5) !important;
 }
 .__ms_vbtn .__ms_vx:hover {
-  background: rgba(6, 9, 13, 0.2) !important;
-  color: #06090d !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #eaf2ff !important;
 }
 
 /* ── source/destination panel anchored to the media ──────────────────────── */
@@ -53,15 +56,23 @@
   position: fixed !important;
   z-index: 2147483647 !important;
   width: 320px !important;
-  background: #0E1318 !important;
-  border: 1px solid #1E2730 !important;
-  border-radius: 14px !important;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.65) !important;
+  background: #14181D !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 60px rgba(4, 9, 20, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   font-family: "DM Sans", system-ui, sans-serif !important;
   color: #F0F4F8 !important;
   overflow: hidden !important;
 }
 .__ms_vpanel.__ms_voff { display: none !important; }
+.__ms_vpanel::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, #22CFFF, #6A4BFF, transparent) !important;
+  opacity: 0.7 !important; pointer-events: none !important;
+}
 .__ms_vhead {
   display: flex !important;
   align-items: center !important;
@@ -71,7 +82,12 @@
   font-size: 13px !important;
   font-weight: 600 !important;
 }
-.__ms_vhead b { color: #00E5FF !important; font-weight: 700 !important; }
+.__ms_vhead b {
+  background: linear-gradient(115deg, #5AB0FF, #22D3EE, #9C8CFF) !important;
+  -webkit-background-clip: text !important; background-clip: text !important;
+  -webkit-text-fill-color: transparent !important; color: transparent !important;
+  font-weight: 700 !important;
+}
 .__ms_vclose { cursor: pointer !important; color: #7A8FA6 !important; font-size: 13px !important; }
 .__ms_vclose:hover { color: #FF4D6A !important; }
 .__ms_vempty {
@@ -112,16 +128,19 @@
   width: calc(100% - 20px) !important;
   margin: 4px 10px 10px !important;
   padding: 9px !important;
-  border: none !important;
-  border-radius: 10px !important;
-  background: linear-gradient(135deg, #00E5FF, #7B61FF) !important;
-  color: #06090d !important;
+  border: 1.5px solid transparent !important;
+  border-radius: 11px !important;
+  background:
+    linear-gradient(#0a0e15, #0a0e15) padding-box,
+    linear-gradient(115deg, #1B4DFF, #0A84FF, #22CFFF, #6A4BFF) border-box !important;
+  color: #eaf2ff !important;
+  box-shadow: 0 0 18px rgba(20, 130, 255, 0.26), inset 0 0 16px rgba(30, 120, 255, 0.12) !important;
   font-family: "DM Sans", system-ui, sans-serif !important;
   font-weight: 700 !important;
   font-size: 12.5px !important;
   cursor: pointer !important;
 }
-.__ms_vgo:hover { filter: brightness(1.08) !important; }
+.__ms_vgo:hover { box-shadow: 0 0 28px rgba(20, 140, 255, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important; transform: translateY(-1px) !important; }
 .__ms_vgo:disabled { opacity: 0.6 !important; pointer-events: none !important; }
 
 /* ── live progress ───────────────────────────────────────────────────────── */

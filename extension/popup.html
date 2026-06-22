@@ -18,7 +18,11 @@ header {
   padding: 14px 16px; border-bottom: 1px solid var(--border);
 }
 .brand { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
-.brand span { color: var(--cyan); }
+.brand span {
+  background: linear-gradient(115deg, #5AB0FF, #22D3EE, #9C8CFF);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
 .status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--err); }
 .dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
@@ -35,12 +39,15 @@ section { padding: 12px 16px; }
 }
 .server-row button:hover { border-color: var(--cyan); }
 .page-btn {
-  width: 100%; margin-top: 4px; padding: 11px; border: none; border-radius: 10px;
-  background: linear-gradient(135deg, var(--cyan), var(--violet));
-  color: #06090d; font-weight: 700; font-size: 13px; cursor: pointer;
+  width: 100%; margin-top: 4px; padding: 11px; border: 1.5px solid transparent; border-radius: 11px;
+  background:
+    linear-gradient(#0a0e15, #0a0e15) padding-box,
+    linear-gradient(115deg, #1B4DFF, #0A84FF, #22CFFF, #6A4BFF) border-box;
+  color: #eaf2ff; font-weight: 700; font-size: 13px; cursor: pointer;
+  box-shadow: 0 0 18px rgba(20,130,255,0.26), inset 0 0 14px rgba(30,120,255,0.12);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.page-btn:hover { transform: scale(1.015); box-shadow: 0 4px 18px rgba(0,229,255,0.3); }
+.page-btn:hover { transform: translateY(-1px); box-shadow: 0 0 26px rgba(20,140,255,0.5), inset 0 1px 0 rgba(255,255,255,0.2); }
 .page-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
 .list-head {
   display: flex; justify-content: space-between; align-items: center;
