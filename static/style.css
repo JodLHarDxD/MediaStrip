@@ -2143,10 +2143,13 @@ body { cursor: auto; }
 @media (max-width: 900px) {
   .manifesto { grid-template-columns: 1fr; gap: 2.5rem; }
   .tool-section, .tool-section-flipped {
-    grid-template-columns: 1fr; gap: 2.5rem;
+    grid-template-columns: minmax(0, 1fr); gap: 2.5rem;
   }
   .tool-section-flipped .tool-copy  { order: 1; }
   .tool-section-flipped .tool-panel { order: 2; }
+  /* let the single column shrink to the viewport instead of being forced wide
+     by grid items' default min-width:auto (= min-content) */
+  .tool-copy, .tool-panel, .glass-panel { min-width: 0; }
   .tool-copy { position: static; }
   .features-grid { grid-template-columns: 1fr; }
   .tech-grid { grid-template-columns: repeat(2, 1fr); }
