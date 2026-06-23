@@ -123,14 +123,22 @@ def _detect_watermark_mask(cap: cv2.VideoCapture, w: int, h: int) -> np.ndarray 
     return final
 
 
-async def remove_watermark(input_path: Path, output_path: Path, platform: str, queue: asyncio.Queue):
-    presets = PRESETS.get(platform.lower(), PRESETS["tiktok"])
+async def remove_watermark(
+    input_path: Path,
+    output_path: Path,
+    platform: str,
+    queue: asyncio.Queue,
+    regions: list[dict] | None = None,
+):
+    # User-marked regions win over platform presets — they reliably cover ANY
+    # watermark, anywhere. Presets remain the fallback when nothing was marked.
+    boxes = regions if regions else PRESETS.get(platform.lower(), PRESETS["tiktok"])
     is_image = input_path.suffix.lower() in IMAGE_EXTS
     try:
         if is_image:
-            await _process_image(input_path, output_path, presets, queue)
+            await _process_image(input_path, output_path, boxes, queue)
         else:
-            await _process_video(input_path, output_path, presets, queue)
+            await _process_video(input_path, output_path, boxes, queue, skip_detect=bool(regions))
     except Exception as e:
         await queue.put({"type": "error", "message": f"{type(e).__name__}: {e}"})
 
@@ -143,6 +151,9 @@ async def _process_image(input_path: Path, output_path: Path, presets: list[dict
     img = cv2.imread(str(input_path))
     h, w = img.shape[:2]
     mask = _build_mask(presets, w, h)
+    # pad the mask a few px so LaMa gets margin and no glyph edges survive at the box border
+    pad = max(2, min(w, h) // 200)
+    mask = cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_RECT, (pad * 2 + 1, pad * 2 + 1)))
 
     await queue.put({"type": "progress", "percent": 30})
 
@@ -167,7 +178,7 @@ async def _process_image(input_path: Path, output_path: Path, presets: list[dict
     await queue.put({"type": "done", "filename": str(output_path), "files": [str(output_path)]})
 
 
-async def _process_video(input_path: Path, output_path: Path, presets: list[dict], queue: asyncio.Queue):
+async def _process_video(input_path: Path, output_path: Path, presets: list[dict], queue: asyncio.Queue, skip_detect: bool = False):
     await queue.put({"type": "log", "value": f"Opening {input_path.name}..."})
     await queue.put({"type": "filename", "value": input_path.name})
 
@@ -185,13 +196,16 @@ async def _process_video(input_path: Path, output_path: Path, presets: list[dict
     await queue.put({"type": "log", "value": "Analyzing frames for watermark detection..."})
     await queue.put({"type": "progress", "percent": 5})
 
-    mask = _detect_watermark_mask(cap, w, h)
-
-    if mask is not None:
-        await queue.put({"type": "log", "value": "Watermark region detected automatically."})
-    else:
-        await queue.put({"type": "log", "value": "Auto-detection inconclusive — using platform preset."})
+    if skip_detect:
+        await queue.put({"type": "log", "value": "Using marked watermark region(s)."})
         mask = _build_mask(presets, w, h)
+    else:
+        mask = _detect_watermark_mask(cap, w, h)
+        if mask is not None:
+            await queue.put({"type": "log", "value": "Watermark region detected automatically."})
+        else:
+            await queue.put({"type": "log", "value": "Auto-detection inconclusive — using platform preset."})
+            mask = _build_mask(presets, w, h)
 
     await queue.put({"type": "progress", "percent": 10})
 

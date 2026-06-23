@@ -1,6 +1,8 @@
 // ─── State ─────────────────────────────────────────────────────────────────
 let selectedPlatform = 'tiktok';
 let selectedFile = null;
+let wmRegions = [];   // user-marked watermark boxes (normalized 0..1) for images
+let _wmDraw = null;   // in-progress drag
 let catalogBatchId = 0;
 let catalogVideoObserver = null;
 const activeEventSources = { dl: null, wm: null };
@@ -116,6 +118,7 @@ async function startWatermarkRemoval() {
   const fd = new FormData();
   fd.append('file', selectedFile);
   fd.append('platform', selectedPlatform);
+  if (wmRegions.length) fd.append('regions', JSON.stringify(wmRegions));
 
   try {
     const res = await fetch('/remove-watermark', { method: 'POST', body: fd });
@@ -547,6 +550,102 @@ function selectPlatform(platform) {
   );
 }
 
+// ─── Watermark region marker (image) ─────────────────────────────────────────
+function setupWmMarker(dataUrl) {
+  const marker = document.getElementById('wm-marker');
+  if (!marker) return;
+  document.getElementById('wm-marker-img').src = dataUrl;
+  marker.hidden = false;
+  wmRegions = [];
+  renderWmBoxes();
+  bindWmMarker();
+}
+
+function hideWmMarker() {
+  const marker = document.getElementById('wm-marker');
+  if (marker) marker.hidden = true;
+  wmRegions = [];
+}
+
+function clearWmRegions() {
+  wmRegions = [];
+  renderWmBoxes();
+}
+
+function renderWmBoxes(live) {
+  const boxesEl = document.getElementById('wm-marker-boxes');
+  if (!boxesEl) return;
+  boxesEl.innerHTML = '';
+  const make = (xf, yf, wf, hf, idx) => {
+    const el = document.createElement('div');
+    el.className = 'wm-marker-box';
+    el.style.left = (xf * 100) + '%';
+    el.style.top = (yf * 100) + '%';
+    el.style.width = (wf * 100) + '%';
+    el.style.height = (hf * 100) + '%';
+    if (idx != null) {
+      const x = document.createElement('div');
+      x.className = 'wm-marker-box-x';
+      x.textContent = '×';
+      x.onclick = (ev) => { ev.stopPropagation(); wmRegions.splice(idx, 1); renderWmBoxes(); };
+      el.appendChild(x);
+    }
+    boxesEl.appendChild(el);
+  };
+  wmRegions.forEach((b, i) => make(b.xf, b.yf, b.wf, b.hf, i));
+  if (live) {
+    make(Math.min(live.x0, live.x1), Math.min(live.y0, live.y1),
+         Math.abs(live.x1 - live.x0), Math.abs(live.y1 - live.y0), null);
+  }
+  const n = wmRegions.length;
+  document.getElementById('wm-marker-count').textContent = `${n} region${n === 1 ? '' : 's'} marked`;
+}
+
+function bindWmMarker() {
+  const stage = document.getElementById('wm-marker-stage');
+  if (!stage || stage._wmBound) return;
+  stage._wmBound = true;
+
+  const rel = (e) => {
+    const r = stage.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: Math.min(Math.max((cx - r.left) / r.width, 0), 1),
+      y: Math.min(Math.max((cy - r.top) / r.height, 0), 1),
+    };
+  };
+  const onDown = (e) => {
+    if (e.target.classList.contains('wm-marker-box-x')) return; // let delete handle it
+    e.preventDefault();
+    const p = rel(e);
+    _wmDraw = { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
+  };
+  const onMove = (e) => {
+    if (!_wmDraw) return;
+    e.preventDefault();
+    const p = rel(e);
+    _wmDraw.x1 = p.x; _wmDraw.y1 = p.y;
+    renderWmBoxes(_wmDraw);
+  };
+  const onUp = () => {
+    if (!_wmDraw) return;
+    const d = _wmDraw; _wmDraw = null;
+    const wf = Math.abs(d.x1 - d.x0), hf = Math.abs(d.y1 - d.y0);
+    if (wf > 0.01 && hf > 0.01) {
+      wmRegions.push({ xf: Math.min(d.x0, d.x1), yf: Math.min(d.y0, d.y1), wf, hf });
+    }
+    renderWmBoxes();
+  };
+
+  stage.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  stage.addEventListener('touchstart', onDown, { passive: false });
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('touchend', onUp);
+}
+
 // ─── Drag & Drop ─────────────────────────────────────────────────────────────
 function handleDragOver(e) {
   e.preventDefault();
@@ -602,11 +701,13 @@ function processFile(file) {
         document.getElementById('preview-thumb').src = ev.target.result;
         document.getElementById('preview-meta').textContent =
           `Image · ${img.width}×${img.height} · ${fmtBytes(file.size)}`;
+        setupWmMarker(ev.target.result);   // show the mark-the-watermark stage
       };
       img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   } else {
+    hideWmMarker();   // marking is image-only for now
     reader.onload = (ev) => {
       const vid = document.createElement('video');
       vid.src = ev.target.result;

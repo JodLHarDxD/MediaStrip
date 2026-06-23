@@ -136,7 +136,7 @@ body.app-ready .site-shell {
   transition: opacity 900ms cubic-bezier(0.4, 0, 0.2, 1), visibility 900ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
-<link rel="stylesheet" href="/static/style.css?v=20">
+<link rel="stylesheet" href="/static/style.css?v=21">
 </head>
 <body>
 
@@ -503,6 +503,18 @@ body.app-ready .site-shell {
             <div class="drop-preview-name" id="preview-name"></div>
             <div class="drop-preview-meta" id="preview-meta"></div>
           </div>
+        </div>
+      </div>
+
+      <div class="wm-marker" id="wm-marker" hidden>
+        <div class="wm-marker-hint">Drag a box over <b>each watermark</b>. LaMa AI rebuilds what was underneath — works on any watermark, anywhere.</div>
+        <div class="wm-marker-stage" id="wm-marker-stage">
+          <img id="wm-marker-img" alt="Uploaded image — drag to mark the watermark region">
+          <div class="wm-marker-boxes" id="wm-marker-boxes"></div>
+        </div>
+        <div class="wm-marker-actions">
+          <span class="wm-marker-count" id="wm-marker-count">0 regions marked</span>
+          <button type="button" class="wm-marker-clear" onclick="clearWmRegions()">Clear marks</button>
         </div>
       </div>
 
@@ -1033,6 +1045,6 @@ body.app-ready .site-shell {
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
 
-<script src="/static/app.js?v=4"></script>
+<script src="/static/app.js?v=5"></script>
 </body>
 </html>

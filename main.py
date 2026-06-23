@@ -764,7 +764,26 @@ async def start_watermark_removal(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     platform: str = Form("tiktok"),
+    regions: str = Form(""),
 ):
+    # Optional user-marked watermark boxes (normalized 0..1): JSON list of
+    # {xf,yf,wf,hf}. When present they override platform presets — reliable for
+    # any watermark anywhere. Clamp to frame + drop degenerate boxes.
+    parsed_regions: list[dict] | None = None
+    if regions.strip():
+        try:
+            clean = []
+            for b in json.loads(regions):
+                xf = min(max(float(b["xf"]), 0.0), 1.0)
+                yf = min(max(float(b["yf"]), 0.0), 1.0)
+                wf = min(max(float(b["wf"]), 0.0), 1.0 - xf)
+                hf = min(max(float(b["hf"]), 0.0), 1.0 - yf)
+                if wf > 0.005 and hf > 0.005:
+                    clean.append({"xf": xf, "yf": yf, "wf": wf, "hf": hf})
+            parsed_regions = clean[:12] or None  # cap to keep the mask sane
+        except (ValueError, TypeError, KeyError):
+            parsed_regions = None
+
     job_id = str(uuid.uuid4())
     _new_job_channel(job_id)
 
@@ -788,7 +807,7 @@ async def start_watermark_removal(
     stem = Path(safe_name).stem
     suffix = Path(safe_name).suffix
     output_path = output_dir / f"{stem}_clean{suffix}"
-    background_tasks.add_task(remove_watermark, upload_path, output_path, platform, job_queues[job_id])
+    background_tasks.add_task(remove_watermark, upload_path, output_path, platform, job_queues[job_id], parsed_regions)
     return {"job_id": job_id}
 
 

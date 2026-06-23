@@ -2384,6 +2384,81 @@ em { font-family: 'Clash Display', sans-serif; font-style: italic; font-weight: 
 }
 
 /* ═══════════════════════════════════════════════════════════
+   WATERMARK MARKER — drag boxes over the watermark (image)
+═══════════════════════════════════════════════════════════ */
+.wm-marker { margin: 14px 0 4px; }
+.wm-marker[hidden] { display: none; }
+.wm-marker-hint {
+  font-size: 12.5px;
+  color: #7A8FA6;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.wm-marker-hint b { color: #F0F4F8; font-weight: 600; }
+.wm-marker-stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+#wm-marker-img {
+  display: block;
+  max-width: 100%;
+  max-height: 360px;
+  width: auto;
+  height: auto;
+}
+.wm-marker-boxes { position: absolute; inset: 0; }
+.wm-marker-box {
+  position: absolute;
+  border: 2px solid #22CFFF;
+  background: rgba(34, 207, 255, 0.18);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 14px rgba(34, 207, 255, 0.5);
+  box-sizing: border-box;
+}
+.wm-marker-box-x {
+  position: absolute;
+  top: -10px; right: -10px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #FF4D6A;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+.wm-marker-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.wm-marker-count { font-size: 12px; color: #7A8FA6; }
+.wm-marker-clear {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #9FB2C6;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.wm-marker-clear:hover { border-color: rgba(34, 207, 255, 0.5); color: #fff; }
+
+/* ═══════════════════════════════════════════════════════════
    FAQ — native <details> accordion (no JS, crawlable, a11y)
 ═══════════════════════════════════════════════════════════ */
 .faq-list {
