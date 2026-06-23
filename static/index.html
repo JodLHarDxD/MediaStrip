@@ -3,13 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MediaStrip — Free 4K Media Downloader & Watermark Remover</title>
-<meta name="description" content="GPU-accelerated, local-first media toolkit for creators. Download video from 1000+ sources at native resolution and remove watermarks frame-by-frame. Free.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<title>MediaStrip — GPU Watermark Remover & 4K Media Toolkit by JodLx Studio</title>
+<meta name="description" content="MediaStrip by JodLx Studio — a local-first, GPU-accelerated creator media toolkit. Remove watermarks frame-by-frame with LaMa AI inpainting and grab media from 1000+ sources at native 4K. Your files never leave your machine. Free.">
+<meta name="author" content="JodLx Studio">
+<meta name="keywords" content="watermark remover, GPU watermark removal, remove tiktok watermark, remove instagram watermark, creator media toolkit, MediaStrip, JodLx Studio, local-first media tool, 4K media downloader, browser media extension">
 <link rel="canonical" href="https://mediastrip.jodlx.in/">
 
 <!-- Open Graph -->
-<meta property="og:title" content="MediaStrip — Free 4K Media Downloader & Watermark Remover">
-<meta property="og:description" content="GPU-accelerated, local-first media toolkit for creators. Download video from 1000+ sources at native resolution and remove watermarks frame-by-frame. Free.">
+<meta property="og:title" content="MediaStrip — GPU Watermark Remover & Creator Media Toolkit">
+<meta property="og:description" content="Local-first, GPU-accelerated creator media toolkit. Remove watermarks frame-by-frame with LaMa AI inpainting and grab media from 1000+ sources at native 4K — your files never leave your machine. Free, by JodLx Studio.">
 <meta property="og:url" content="https://mediastrip.jodlx.in/">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://mediastrip.jodlx.in/static/og-image.png">
@@ -19,8 +22,8 @@
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="MediaStrip — Free 4K Media Downloader & Watermark Remover">
-<meta name="twitter:description" content="GPU-accelerated, local-first media toolkit for creators. Download video from 1000+ sources at native resolution and remove watermarks frame-by-frame. Free.">
+<meta name="twitter:title" content="MediaStrip — GPU Watermark Remover & Creator Media Toolkit">
+<meta name="twitter:description" content="Local-first, GPU-accelerated creator media toolkit. Remove watermarks frame-by-frame with LaMa AI inpainting and grab media from 1000+ sources at native 4K — your files never leave your machine. Free, by JodLx Studio.">
 <meta name="twitter:image" content="https://mediastrip.jodlx.in/static/og-image.png">
 
 <!-- Structured Data -->
@@ -133,7 +136,7 @@ body.app-ready .site-shell {
   transition: opacity 900ms cubic-bezier(0.4, 0, 0.2, 1), visibility 900ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
-<link rel="stylesheet" href="/static/style.css?v=19">
+<link rel="stylesheet" href="/static/style.css?v=20">
 </head>
 <body>
 
@@ -870,6 +873,65 @@ body.app-ready .site-shell {
     </a>
   </div>
 </section>
+
+<!-- ═══════════════════════════════════════════ FAQ -->
+<section class="section faq-section" id="faq" data-section-theme="faq">
+  <div class="section-header reveal">
+    <div class="eyebrow">— COMMON QUESTIONS</div>
+    <h2 class="section-heading">Watermark removal,<br><span class="gradient-text">answered.</span></h2>
+  </div>
+
+  <div class="faq-list reveal">
+    <details class="faq-item" open>
+      <summary>How do I remove a watermark from a video for free?</summary>
+      <div class="faq-answer">Drop the video into MediaStrip's watermark remover. It samples frames to auto-detect the static watermark region, then uses LaMa AI inpainting (GPU-accelerated) to reconstruct what was behind it — frame by frame, with no re-encoding quality loss. It runs locally and is free to use.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Does MediaStrip upload my files to a server?</summary>
+      <div class="faq-answer">No. MediaStrip is local-first — your media is processed on your own machine (and your GPU where available). Files never leave your device, which is faster than cloud tools and keeps your footage private.</div>
+    </details>
+    <details class="faq-item">
+      <summary>How do I remove a TikTok or Instagram watermark without losing quality?</summary>
+      <div class="faq-answer">MediaStrip detects the platform watermark automatically for video, or uses pre-mapped TikTok / Instagram / YouTube regions for images. It inpaints only the watermark area and stream-copies the rest, so there's zero generational quality loss on the untouched pixels.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Why is AI inpainting better than blur or patch-based watermark removal?</summary>
+      <div class="faq-answer">Old tools blur or copy nearby pixels, leaving smears and ghosting. LaMa is a neural inpainting model that <em>generates</em> plausible new pixels from the surrounding context, so textures, edges, and motion stay coherent — a cleaner result, especially on busy backgrounds. If a GPU/torch isn't present, MediaStrip falls back to OpenCV TELEA.</div>
+    </details>
+    <details class="faq-item">
+      <summary>What video and image formats are supported?</summary>
+      <div class="faq-answer">Video: MP4, MOV, AVI, MKV, WebM. Images: JPG, JPEG, PNG, WebP, TIFF. Output keeps the original format and filename, suffixed with <code>_clean</code>.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Can I download media from other sites too?</summary>
+      <div class="faq-answer">Yes — alongside watermark removal, MediaStrip grabs media from 1000+ sources at native resolution (up to 4K where the source has it), merging best audio via ffmpeg with no re-encoding. Paste a URL to start.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Is there a browser extension?</summary>
+      <div class="faq-answer">Yes. The MediaStrip browser extension adds an on-page download button to media as you browse, sending it straight to your MediaStrip downloads — no copy-pasting URLs.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Who makes MediaStrip?</summary>
+      <div class="faq-answer">MediaStrip is built by <a href="https://portfolio.jodlx.in/" target="_blank" rel="noopener">JodLx Studio</a> — an independent studio building local-first creator tools. Find us on <a href="https://github.com/JodLHarDxD/MediaStrip" target="_blank" rel="noopener">GitHub</a>.</div>
+    </details>
+  </div>
+</section>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "How do I remove a watermark from a video for free?", "acceptedAnswer": { "@type": "Answer", "text": "Drop the video into MediaStrip's watermark remover. It samples frames to auto-detect the static watermark region, then uses LaMa AI inpainting (GPU-accelerated) to reconstruct what was behind it — frame by frame, with no re-encoding quality loss. It runs locally and is free to use." } },
+    { "@type": "Question", "name": "Does MediaStrip upload my files to a server?", "acceptedAnswer": { "@type": "Answer", "text": "No. MediaStrip is local-first — your media is processed on your own machine (and your GPU where available). Files never leave your device, which is faster than cloud tools and keeps your footage private." } },
+    { "@type": "Question", "name": "How do I remove a TikTok or Instagram watermark without losing quality?", "acceptedAnswer": { "@type": "Answer", "text": "MediaStrip detects the platform watermark automatically for video, or uses pre-mapped TikTok, Instagram and YouTube regions for images. It inpaints only the watermark area and stream-copies the rest, so there is zero generational quality loss on the untouched pixels." } },
+    { "@type": "Question", "name": "Why is AI inpainting better than blur or patch-based watermark removal?", "acceptedAnswer": { "@type": "Answer", "text": "Old tools blur or copy nearby pixels, leaving smears and ghosting. LaMa is a neural inpainting model that generates plausible new pixels from the surrounding context, so textures, edges and motion stay coherent — a cleaner result, especially on busy backgrounds. If a GPU/torch is not present, MediaStrip falls back to OpenCV TELEA." } },
+    { "@type": "Question", "name": "What video and image formats are supported?", "acceptedAnswer": { "@type": "Answer", "text": "Video: MP4, MOV, AVI, MKV, WebM. Images: JPG, JPEG, PNG, WebP, TIFF. Output keeps the original format and filename, suffixed with _clean." } },
+    { "@type": "Question", "name": "Can I download media from other sites too?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — alongside watermark removal, MediaStrip grabs media from 1000+ sources at native resolution (up to 4K where the source has it), merging best audio via ffmpeg with no re-encoding. Paste a URL to start." } },
+    { "@type": "Question", "name": "Is there a browser extension?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The MediaStrip browser extension adds an on-page download button to media as you browse, sending it straight to your MediaStrip downloads — no copy-pasting URLs." } },
+    { "@type": "Question", "name": "Who makes MediaStrip?", "acceptedAnswer": { "@type": "Answer", "text": "MediaStrip is built by JodLx Studio — an independent studio building local-first creator tools. Find the project on GitHub." } }
+  ]
+}
+</script>
 
 <!-- ═══════════════════════════════════════════ CTA -->
 <section class="section cta-section" id="cta" data-section-theme="cta">

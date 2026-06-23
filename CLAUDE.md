@@ -184,3 +184,45 @@ uvicorn main:app --reload --port 8000
 - Output filename: original_name_clean.ext (same extension)
 - Platform presets (TikTok/Instagram/YouTube) apply to both file types
   since watermark positions are consistent across video and stills
+
+## SEO & Discoverability (standing mission)
+Goal: rank page-1 on Google for brand + winnable long-tail. Owner brand = **JodLx Studio**,
+product = **MediaStrip**, founder = Hriddhish Ranjan Sarkar.
+
+### Realistic target tiers (do not waste effort above your weight)
+- **Brand (win fast):** jodl, jodlx, jodlx studio, mediastrip
+- **Long-tail (win with content+links, months):** "on-page video download button extension",
+  "download video without uploading to a server", "local GPU watermark remover",
+  "remove tiktok/instagram watermark online free", "browser extension media downloader"
+- **Head terms (DO NOT chase):** "video downloader", "media downloader", "online downloader" —
+  owned by y2mate/savefrom/snaptube-class domains; unwinnable short-term.
+
+### Positioning rule (penalty avoidance) — IMPORTANT
+Google actively demotes generic "downloader" sites and bans them from AdSense. Lead public
+copy, titles, and schema with **"watermark remover" + "creator media toolkit" + "local-first /
+GPU"**, NOT "video downloader." Downloader is a feature, not the headline. This protects the
+whole domain from being buried.
+
+### On-page invariants (keep true on every change)
+- Real, crawlable `<h1>` text in the HTML (never JS-only). Hero uses a permanent `.sr-only`
+  keyword line inside the H1; decorative wordmark is `aria-hidden`.
+- JSON-LD kept valid + in sync: `SoftwareApplication` (author/publisher = JodLx Studio Org),
+  `Organization` (full `sameAs` of all real profiles), `FAQPage`, blog `BlogPosting` +
+  `BreadcrumbList`. Validate parse after any schema edit.
+- All real social/contact links only — never placeholder URLs (instagram.com, x.com) or
+  off-domain fake emails. Canonical + OG + Twitter tags present and accurate.
+- Every `<img>` has descriptive, keyword-aware `alt`. Headings carry intent keywords
+  (not "Under the hood" — say what it does).
+- `robots` meta = `index,follow,max-image-preview:large,max-snippet:-1`. Routes answer HEAD.
+- Bump `style.css?v=N` whenever CSS changes so cached clients get it.
+- sitemap.xml lists every public URL with fresh `lastmod`; robots.txt references it.
+
+### Off-page (human-owned, the real lever — surface as TODOs, can't be coded)
+Backlinks + time decide competitive rank: Product Hunt, Reddit (r/DataHoarder, r/software),
+Hacker News, AlternativeTo/Slant/SaaSHub directories, dev.to/Medium posts, Chrome Web Store
+listing (the listing itself ranks). Reciprocal: site URL in every social bio.
+
+### Workflow
+Audit pixels/serps with real fetches, not assumptions. After SEO edits: validate JSON-LD,
+re-render to confirm no visible regressions, commit, push (Railway auto-deploys), then advise
+GSC "Request indexing" for changed URLs.

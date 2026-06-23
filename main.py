@@ -411,8 +411,9 @@ async def serve_blog_post(slug: str):
     return HTMLResponse(_render_blog_post(slug))
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def serve_index():
+    # HEAD must answer 200 (not 405) — crawlers and link validators probe with HEAD
     return HTMLResponse((STATIC_DIR / "index.html").read_text(encoding="utf-8"))
 
 
