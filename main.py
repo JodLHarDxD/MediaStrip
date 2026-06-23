@@ -411,6 +411,155 @@ async def serve_blog_post(slug: str):
     return HTMLResponse(_render_blog_post(slug))
 
 
+def _render_extension_page() -> str:
+    canonical = f"{SITE_URL}/extension"
+    title = "MediaStrip Browser Extension — Download Media From Any Site, Locally"
+    desc = ("The MediaStrip browser extension adds an on-page download button to video and "
+            "media on any website — sent straight to your local MediaStrip downloads. "
+            "Local-first, no uploads, by JodLx Studio.")
+    body = """
+<article class="blog-post">
+  <header class="blog-post-header">
+    <h1>The MediaStrip Browser Extension</h1>
+    <p class="blog-post-meta">An on-page download button for media on any website — local-first, no uploads.</p>
+  </header>
+  <div class="blog-post-body">
+    <p>The <strong>MediaStrip browser extension</strong> puts a download button right on the
+    media you're already looking at. Instead of copying a URL into a downloader site, you click
+    once and the video or image is sent straight to your local MediaStrip downloads — at native
+    resolution, with no re-encoding and no upload to anyone's server.</p>
+
+    <h2>An on-page download button for any site</h2>
+    <p>As you browse, the extension detects playable video and media elements and pins a small
+    download pill to each one. It works across 1000+ sources — the same breadth as the MediaStrip
+    engine — so a single browser extension covers YouTube, Vimeo, social media, lecture portals,
+    and the long tail of sites a generic downloader misses.</p>
+
+    <h2>How the extension works</h2>
+    <ul>
+      <li><strong>Detect:</strong> the content script finds media on the page and attaches a catcher button.</li>
+      <li><strong>Resolve:</strong> on click, MediaStrip's server-side extractor picks the best
+      available stream (up to 4K where the source has it) and merges the best audio via ffmpeg.</li>
+      <li><strong>Deliver:</strong> the file lands in your MediaStrip downloads folder — stream-copied,
+      so there is zero generational quality loss.</li>
+    </ul>
+
+    <h2>Local-first and private by design</h2>
+    <p>MediaStrip is built local-first: processing happens on your own machine and GPU, and your
+    media never leaves your device. That is faster than cloud downloaders and keeps your footage
+    private — a deliberate contrast to browser-based downloader sites that proxy everything through
+    a third-party server.</p>
+
+    <h2>Supported media and formats</h2>
+    <p>Video: MP4, MOV, AVI, MKV, WebM. Images: JPG, PNG, WebP, TIFF. Downloaded media keeps its
+    native container and quality. Paired with the MediaStrip app you can also remove watermarks
+    frame-by-frame with GPU-accelerated LaMa AI inpainting after you grab a clip.</p>
+
+    <h2>Install the MediaStrip extension</h2>
+    <p>The extension ships in the project repository and loads as an unpacked extension in any
+    Chromium browser (Chrome, Brave, Edge): open your browser's Extensions page, enable Developer
+    Mode, and "Load unpacked" pointing at the <code>extension/</code> folder. A Chrome Web Store
+    listing is on the way. Source and instructions live on
+    <a href="https://github.com/JodLHarDxD/MediaStrip" target="_blank" rel="noopener">GitHub</a>.</p>
+
+    <p><a href="/">← Back to the MediaStrip app</a> &nbsp;·&nbsp; <a href="/#faq">Read the FAQ</a></p>
+  </div>
+</article>
+"""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<title>{title}</title>
+<meta name="description" content="{desc}">
+<meta name="author" content="JodLx Studio">
+<link rel="canonical" href="{canonical}">
+
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{desc}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{SITE_URL}/static/og-image.png">
+<meta property="og:site_name" content="MediaStrip">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{title}">
+<meta name="twitter:description" content="{desc}">
+<meta name="twitter:image" content="{SITE_URL}/static/og-image.png">
+
+<script type="application/ld+json">
+{{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "MediaStrip Browser Extension",
+  "applicationCategory": "BrowserApplication",
+  "operatingSystem": "Chrome, Brave, Edge (Chromium)",
+  "url": "{canonical}",
+  "description": "{desc}",
+  "offers": {{"@type": "Offer", "price": "0", "priceCurrency": "USD"}},
+  "publisher": {{"@type": "Organization", "name": "JodLx Studio", "url": "https://portfolio.jodlx.in/"}},
+  "sameAs": ["https://github.com/JodLHarDxD/MediaStrip"]
+}}
+</script>
+<script type="application/ld+json">
+{{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {{"@type": "ListItem", "position": 1, "name": "MediaStrip", "item": "{SITE_URL}/"}},
+    {{"@type": "ListItem", "position": 2, "name": "Browser Extension", "item": "{canonical}"}}
+  ]
+}}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
+<style>
+:root {{ --bg: #05030b; --ink: #e9e2f5; --muted: #8a7fa8; --accent: #d4b8ff; --rule: rgba(212,184,255,0.14); }}
+* {{ box-sizing: border-box; }}
+html, body {{ margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: "DM Sans", system-ui, sans-serif; line-height: 1.7; -webkit-font-smoothing: antialiased; }}
+.blog-nav {{ max-width: 760px; margin: 0 auto; padding: 32px 24px 0; display: flex; justify-content: space-between; align-items: center; }}
+.blog-nav a {{ color: var(--muted); text-decoration: none; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.2s; }}
+.blog-nav a:hover {{ color: var(--accent); }}
+.blog-nav .brand {{ color: var(--ink); font-weight: 500; font-size: 16px; text-transform: none; letter-spacing: 0; }}
+.blog-nav .brand span {{ color: var(--accent); }}
+.blog-post {{ max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }}
+.blog-post-header {{ border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }}
+.blog-post h1 {{ font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: clamp(32px, 5vw, 48px); line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.01em; }}
+.blog-post-meta {{ color: var(--muted); font-size: 14px; margin: 0; letter-spacing: 0.03em; }}
+.blog-post-body h2 {{ font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 26px; margin: 48px 0 16px; color: var(--ink); letter-spacing: -0.005em; }}
+.blog-post-body p {{ margin: 0 0 20px; font-size: 17px; color: var(--ink); }}
+.blog-post-body ul {{ margin: 0 0 24px; padding-left: 24px; }}
+.blog-post-body li {{ margin-bottom: 8px; font-size: 17px; }}
+.blog-post-body a {{ color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(212,184,255,0.35); transition: border-color 0.2s; }}
+.blog-post-body a:hover {{ border-bottom-color: var(--accent); }}
+.blog-post-body code {{ background: rgba(212,184,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.92em; color: var(--accent); }}
+.blog-post-body strong {{ color: var(--ink); font-weight: 600; }}
+.blog-footer {{ max-width: 720px; margin: 0 auto; padding: 32px 24px 48px; border-top: 1px solid var(--rule); text-align: center; color: var(--muted); font-size: 14px; }}
+.blog-footer a {{ color: var(--accent); text-decoration: none; }}
+</style>
+</head>
+<body>
+<nav class="blog-nav">
+  <a href="/" class="brand">Media<span>Strip</span></a>
+  <a href="/">← Back to app</a>
+</nav>
+{body}
+<footer class="blog-footer">
+  <p>Built by <a href="https://portfolio.jodlx.in/" target="_blank" rel="noopener">JodLx Studio</a> · Try <a href="/">MediaStrip</a> — local-first GPU watermark removal and 4K media downloading.</p>
+</footer>
+</body>
+</html>"""
+
+
+@app.api_route("/extension", methods=["GET", "HEAD"])
+async def serve_extension_page():
+    return HTMLResponse(_render_extension_page())
+
+
 @app.api_route("/", methods=["GET", "HEAD"])
 async def serve_index():
     # HEAD must answer 200 (not 405) — crawlers and link validators probe with HEAD
