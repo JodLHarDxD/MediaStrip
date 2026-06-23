@@ -1115,7 +1115,9 @@ function initMotionEngine() {
   const heroTitle = document.getElementById('hero-title');
   if (heroTitle) {
     const text = heroTitle.getAttribute('data-slot-text') || "MEDIA STRIP";
-    heroTitle.innerHTML = ''; // clear any existing content
+    const seoLabel = heroTitle.querySelector('.sr-only'); // permanent crawlable/a11y heading text
+    heroTitle.innerHTML = ''; // clear scramble slots only
+    if (seoLabel) heroTitle.appendChild(seoLabel); // keep the real H1 text in the DOM
 
     const words = text.split(' ');
     const columns = [];
