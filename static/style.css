@@ -2383,6 +2383,27 @@ em { font-family: 'Clash Display', sans-serif; font-style: italic; font-weight: 
   /* We won't animate showcase card translate because it uses GSAP 3D transforms actively */
 }
 
+/* ── footer sister-site link (cross-link JodLx Studio products) ── */
+.footer-sister {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.footer-sister-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3D5166;
+}
+.footer-sister a {
+  font-size: 13px;
+  color: #9FB2C6;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-sister a:hover { color: #22CFFF; }
+
 /* ═══════════════════════════════════════════════════════════
    WATERMARK MARKER — drag boxes over the watermark (image)
 ═══════════════════════════════════════════════════════════ */
